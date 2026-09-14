@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "flit_scm:buildapi"
-requires = [ "flit-core>=3.2", "flit-scm" ]
+requires = [ "flit-core>=4.0.2", "flit-scm" ]
 
 [project]
 name = "django-mail"
