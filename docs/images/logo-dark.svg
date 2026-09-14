@@ -8,7 +8,7 @@
     Django
   </text>
   <text x="241" y="190" fill="#c9d1d9" font-size="90" font-weight="bold" transform="matrix(1.6 0 0 1.6 120 120)">
-    Mail
+    Letter
   </text>
   <text x="241" y="224" fill="#c9d1d9" font-size="18" font-style="italic" transform="matrix(1.6 0 0 1.6 120 120)">
     HTML emails via Django templates.

@@ -4,11 +4,11 @@ from django.urls import reverse
 
 
 def preview_url(slug: str) -> str:
-    return reverse("django_mail:preview", kwargs={"slug": slug})
+    return reverse("django_letter:preview", kwargs={"slug": slug})
 
 
 def test_list(client) -> None:
-    response = client.get(reverse("django_mail:list"))
+    response = client.get(reverse("django_letter:list"))
     content = response.content.decode()
     assert response.status_code == 200
     assert content.index("invoiceemail") < content.index(

@@ -1,4 +1,4 @@
-"""Behaviour of the bundled `django_mail` template tags."""
+"""Behaviour of the bundled `django_letter` template tags."""
 
 from django.template import Context, Template
 from django.template.loader import render_to_string
@@ -7,8 +7,8 @@ TABLE = '<table role="presentation" border="0" cellpadding="0" cellspacing="0"'
 
 
 def render(source: str, **context: object) -> str:
-    """Render a snippet with the `django_mail` library loaded."""
-    return Template("{% load django_mail %}" + source).render(Context(context))
+    """Render a snippet with the `django_letter` library loaded."""
+    return Template("{% load django_letter %}" + source).render(Context(context))
 
 
 def test_table_without_attributes() -> None:
@@ -41,7 +41,7 @@ def test_button_renders_table_classes() -> None:
 
 
 def test_base_template_renders_tables() -> None:
-    html = render_to_string("django_mail/base.html")
+    html = render_to_string("django_letter/base.html")
     assert f'{TABLE} class="body">' in html
     assert f'{TABLE} class="main">' in html
     assert f"{TABLE}>" in html

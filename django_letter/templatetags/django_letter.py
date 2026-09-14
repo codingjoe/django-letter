@@ -21,7 +21,7 @@ def table(content: str, **attrs: object) -> str:
     )
 
 
-@register.inclusion_tag("django_mail/button.html")
+@register.inclusion_tag("django_letter/button.html")
 def button(
     href: str, value: str, disabled: bool = False, primary: bool = False
 ) -> dict[str, str | bool]:
