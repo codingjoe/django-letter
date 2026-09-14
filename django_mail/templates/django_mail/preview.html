@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ email_name }}</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+        margin: 0;
+        font-family: system-ui, sans-serif;
+      }
+
+      nav {
+        display: flex;
+        align-items: center;
+        padding: 12px 24px;
+        gap: 12px;
+      }
+
+      nav a {
+        color: #1d4ed8;
+      }
+
+      nav strong {
+        margin-right: auto;
+      }
+
+      main {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+        padding: 0 24px 24px;
+        gap: 24px;
+      }
+
+      iframe {
+        height: 100%;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background-color: #ffffff;
+      }
+
+      .desktop {
+        flex: 1;
+        width: 100%;
+      }
+
+      .mobile {
+        flex: none;
+        width: 375px;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <strong>{{ email_name }}</strong>
+      <a href="{{ list_url }}">All emails</a>
+      <a href="{% querystring plain=1 %}" target="_blank">Plain text</a>
+      <a href="{% querystring raw=1 %}" target="_blank">HTML</a>
+    </nav>
+    <main>
+      <iframe class="desktop" src="{% querystring raw=1 %}"></iframe>
+      <iframe class="mobile" src="{% querystring raw=1 %}"></iframe>
+    </main>
+  </body>
+</html>

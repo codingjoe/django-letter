@@ -1,0 +1,11 @@
+{% load django_mail %}{% table class=classes %}
+<tr>
+  <td align="center">
+    {% if disabled %}
+      {{ value }}
+    {% else %}
+      <a href="{{ href }}" target="_blank">{{ value }}</a>
+    {% endif %}
+  </td>
+</tr>
+{% endtable %}
