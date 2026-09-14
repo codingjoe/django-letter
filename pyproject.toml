@@ -28,7 +28,7 @@ classifiers = [
   "Topic :: Software Development",
 ]
 dynamic = [ "description", "version" ]
-dependencies = [ "django>=5.2", "premailer" ]
+dependencies = [ "django>=6.1.1", "premailer" ]
 [[project.authors]]
 name = "Johannes Maron"
 email = "johannes@maron.family"
