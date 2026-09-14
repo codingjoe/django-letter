@@ -1,0 +1,105 @@
+[build-system]
+build-backend = "flit_scm:buildapi"
+requires = [ "flit-core>=3.2", "flit-scm" ]
+
+[project]
+name = "django-mail"
+readme = "README.md"
+keywords = [ "Django", "email", "HTML" ]
+license = { file = "LICENSE" }
+requires-python = ">=3.12"
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Web Environment",
+  "Framework :: Django",
+  "Framework :: Django :: 5.2",
+  "Framework :: Django :: 6.1",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: GNU Affero General Public License v3",
+  "Operating System :: MacOS :: MacOS X",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Communications :: Email",
+  "Topic :: Software Development",
+]
+dynamic = [ "description", "version" ]
+dependencies = [ "django>=5.2", "premailer" ]
+[[project.authors]]
+name = "Johannes Maron"
+email = "johannes@maron.family"
+[project.urls]
+# https://packaging.python.org/en/latest/specifications/well-known-project-urls/#well-known-labels
+Changelog = "https://github.com/codingjoe/django-mail/releases"
+Funding = "https://github.com/sponsors/codingjoe"
+Homepage = "https://github.com/codingjoe/django-mail"
+Issues = "https://github.com/codingjoe/django-mail/issues"
+Releasenotes = "https://github.com/codingjoe/django-mail/releases/latest"
+Source = "https://github.com/codingjoe/django-mail"
+
+[dependency-groups]
+dev = [
+  { include-group = "test" },
+]
+test = [
+  "pytest",
+  "pytest-cov",
+  "pytest-django",
+  "pytest-env",
+]
+
+[tool.setuptools_scm]
+write_to = "django_mail/_version.py"
+
+[tool.ruff]
+src = [ "django_mail", "tests" ]
+[tool.ruff.lint]
+extend-select = [
+  "C90",  # mccabe
+  "D",    # pydocstyle
+  "D213", # multi-line docstring summary starts on the second line
+  "DJ",   # pylint-django
+  "E",    # pycodestyle errors
+  "G",    # flake8-logging-format
+  "N",    # pep8-naming
+  "PERF", # Perflint
+  "PT",   # flake8-pytest-style
+  "PTH",  # flake8-use-pathlib
+  "RET",  # flake8-return
+  "SIM",  # flake8-simplify
+  "SLOT", # flake8-slots
+  "T20",  # flake8-print
+  "TRY",  # tryceratops
+  "UP",   # pyupgrade
+  "W",    # pycodestyle warnings
+]
+ignore = [ "D1", "D203", "E501", "RUF01" ]
+isort.combine-as-imports = true
+isort.force-wrap-aliases = true
+isort.known-first-party = [ "django_mail", "tests" ]
+isort.section-order = [ "future", "standard-library", "third-party", "first-party", "local-folder" ]
+isort.split-on-trailing-comma = true
+pydocstyle.convention = "pep257"
+
+[tool.pyproject-fmt]
+table_format = "long"
+
+[tool.pytest]
+[tool.pytest.ini_options]
+minversion = "6.1"
+testpaths = [ "tests" ]
+addopts = "--cov --cov-report=xml --cov-report=term --tb=short -rxs"
+DJANGO_SETTINGS_MODULE = "tests.testapp.settings"
+env = [ "DJANGO_MAIL_TEST=true" ]
+
+[tool.coverage]
+[tool.coverage.run]
+source = [ "django_mail" ]
+branch = true
+[tool.coverage.report]
+skip_covered = true
+show_missing = true

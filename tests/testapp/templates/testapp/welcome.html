@@ -1,0 +1,9 @@
+{% extends "django_mail/base.html" %}
+{% load django_mail %}
+
+{% block content %}
+  <h1>Welcome, {{ name }}</h1>
+  <p>Your account is ready. Confirm your address to get started.</p>
+  {% button href="/welcome/confirm" value="Confirm address" primary=True %}
+  {% button href="/welcome/later" value="Remind me later" disabled=True %}
+{% endblock content %}

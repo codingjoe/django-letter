@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="320" font-family="Segoe UI, system-ui, sans-serif" viewBox="0 0 1280 640">
+  <circle cx="260" cy="320" r="200" fill="#092e20"/>
+  <g fill="none" stroke="#f1fff7" stroke-linecap="round" stroke-linejoin="round" stroke-width="20">
+    <path d="M245 380h-60a20 20 0 0 1-20-20V260a20 20 0 0 1 20-20h140a20 20 0 0 1 20 20v60"/>
+    <path d="m165 260 90 60 90-60m-10 140 20-20-20-20m-30 0-20 20 20 20"/>
+  </g>
+  <text x="241" y="100" fill="#092e20" font-size="64" font-weight="bold" transform="matrix(1.6 0 0 1.6 120 120)">
+    Django
+  </text>
+  <text x="241" y="190" fill="#1c1c1c" font-size="90" font-weight="bold" transform="matrix(1.6 0 0 1.6 120 120)">
+    Mail
+  </text>
+  <text x="241" y="224" fill="#1c1c1c" font-size="18" font-style="italic" transform="matrix(1.6 0 0 1.6 120 120)">
+    HTML emails via Django templates.
+  </text>
+</svg>

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+{% comment %}
+
+The MIT License (MIT)
+
+Copyright (c) [2013] [Lee Munroe]
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+{% endcomment %}
+{% load django_mail i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>{{ subject }}</title>
+    <style media="all" type="text/css">
+      /* -------------------------------------
+          GLOBAL RESETS
+      ------------------------------------- */
+
+      body {
+        font-family: Helvetica, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        font-size: 16px;
+        line-height: 1.3;
+        -ms-text-size-adjust: 100%;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      table {
+        border-collapse: separate;
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+        width: 100%;
+      }
+
+      table td {
+        font-size: 16px;
+        font-family: Helvetica, sans-serif;
+        vertical-align: top;
+      }
+      /* -------------------------------------
+          BODY & CONTAINER
+      ------------------------------------- */
+
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #f4f5f6;
+      }
+
+      .body {
+        width: 100%;
+        background-color: #f4f5f6;
+      }
+
+      .container {
+        width: 600px;
+        max-width: 600px;
+        margin: 0 auto !important;
+        padding: 0;
+        padding-top: 24px;
+      }
+
+      .content {
+        box-sizing: border-box;
+        display: block;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 0;
+      }
+      /* -------------------------------------
+          HEADER, FOOTER, MAIN
+      ------------------------------------- */
+
+      .main {
+        width: 100%;
+        border: 1px solid #eaebed;
+        border-radius: 16px;
+        background: #ffffff;
+      }
+
+      .wrapper {
+        box-sizing: border-box;
+        padding: 24px;
+      }
+
+      .footer {
+        width: 100%;
+        padding-top: 24px;
+        clear: both;
+        text-align: center;
+      }
+
+      .footer td,
+      .footer p,
+      .footer span,
+      .footer a {
+        color: #9a9ea6;
+        font-size: 16px;
+        text-align: center;
+      }
+      /* -------------------------------------
+          TYPOGRAPHY
+      ------------------------------------- */
+
+      p {
+        margin: 0;
+        margin-bottom: 16px;
+        font-weight: normal;
+        font-size: 16px;
+        font-family: Helvetica, sans-serif;
+      }
+
+      a {
+        color: #0867ec;
+        text-decoration: underline;
+      }
+      /* -------------------------------------
+          BUTTONS
+      ------------------------------------- */
+
+      .btn {
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 100% !important;
+      }
+
+      .btn > tbody > tr > td {
+        padding-bottom: 16px;
+      }
+
+      .btn table {
+        width: auto;
+      }
+
+      .btn table td {
+        border-radius: 4px;
+        background-color: #ffffff;
+        text-align: center;
+      }
+
+      .btn a {
+        box-sizing: border-box;
+        display: inline-block;
+        margin: 0;
+        padding: 12px 24px;
+        border: solid 2px #0867ec;
+        border-radius: 4px;
+        background-color: #ffffff;
+        color: #0867ec;
+        font-weight: bold;
+        font-size: 16px;
+        text-decoration: none;
+        text-transform: capitalize;
+        cursor: pointer;
+      }
+
+      .btn-primary table td {
+        background-color: #0867ec;
+      }
+
+      .btn-primary a {
+        border-color: #0867ec;
+        background-color: #0867ec;
+        color: #ffffff;
+      }
+
+      @media all {
+        .btn-primary table td:hover {
+          background-color: #ec0867 !important;
+        }
+        .btn-primary a:hover {
+          border-color: #ec0867 !important;
+          background-color: #ec0867 !important;
+        }
+      }
+
+      /* -------------------------------------
+          OTHER STYLES THAT MIGHT BE USEFUL
+      ------------------------------------- */
+
+      .last {
+        margin-bottom: 0;
+      }
+
+      .first {
+        margin-top: 0;
+      }
+
+      .align-center {
+        text-align: center;
+      }
+
+      .align-right {
+        text-align: right;
+      }
+
+      .align-left {
+        text-align: left;
+      }
+
+      .text-link {
+        color: #0867ec !important;
+        text-decoration: underline !important;
+      }
+
+      .clear {
+        clear: both;
+      }
+
+      .mt0 {
+        margin-top: 0;
+      }
+
+      .mb0 {
+        margin-bottom: 0;
+      }
+
+      .preheader {
+        display: none;
+        max-width: 0;
+        height: 0;
+        max-height: 0;
+        overflow: hidden;
+        color: transparent;
+        opacity: 0;
+        mso-hide: all;
+        visibility: hidden;
+        width: 0;
+      }
+
+      .powered-by a {
+        text-decoration: none;
+      }
+
+      /* -------------------------------------
+          RESPONSIVE AND MOBILE FRIENDLY STYLES
+      ------------------------------------- */
+
+      @media only screen and (max-width: 640px) {
+        .main p,
+        .main td,
+        .main span {
+          font-size: 16px !important;
+        }
+        .wrapper {
+          padding: 8px !important;
+        }
+        .content {
+          padding: 0 !important;
+        }
+        .container {
+          width: 100% !important;
+          padding: 0 !important;
+          padding-top: 8px !important;
+        }
+        .main {
+          border-right-width: 0 !important;
+          border-left-width: 0 !important;
+          border-radius: 0 !important;
+        }
+        .btn table {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+        .btn a {
+          width: 100% !important;
+          max-width: 100% !important;
+          font-size: 16px !important;
+        }
+      }
+      /* -------------------------------------
+          PRESERVE THESE STYLES IN THE HEAD
+      ------------------------------------- */
+
+      @media all {
+        .ExternalClass {
+          width: 100%;
+        }
+        .ExternalClass,
+        .ExternalClass p,
+        .ExternalClass span,
+        .ExternalClass font,
+        .ExternalClass td,
+        .ExternalClass div {
+          line-height: 100%;
+        }
+        .apple-link a {
+          color: inherit !important;
+          font-weight: inherit !important;
+          font-size: inherit !important;
+          line-height: inherit !important;
+          font-family: inherit !important;
+          text-decoration: none !important;
+        }
+        #MessageViewBody a {
+          color: inherit;
+          font-weight: inherit;
+          font-size: inherit;
+          line-height: inherit;
+          font-family: inherit;
+          text-decoration: none;
+        }
+      }
+    </style>
+    {% block extra_header %}{% endblock extra_header %}
+  </head>
+  <body>
+    {% table class="body" %}
+    <tr>
+      <td>&nbsp;</td>
+      <td class="container">
+        <div class="content">
+          {% block container %}
+            <span class="preheader">{{ preheader }}</span>
+
+            {% block logo %}
+            {% endblock logo %}
+
+            {% table class="main" %}
+            <tr>
+              <td class="wrapper">
+                {% block content %}{% endblock content %}
+              </td>
+            </tr>
+            {% endtable %}
+
+            {% block footer %}
+              <div class="footer">
+                {% table %}
+                <tr>
+                  <td class="content-block">
+                    {% block footer_content %}{% endblock footer_content %}
+                  </td>
+                </tr>
+                {% endtable %}
+              </div>
+            {% endblock footer %}
+          {% endblock container %}
+        </div>
+      </td>
+      <td>&nbsp;</td>
+    </tr>
+    {% endtable %}
+  </body>
+</html>

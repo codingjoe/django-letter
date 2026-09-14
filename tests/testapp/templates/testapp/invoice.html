@@ -1,0 +1,6 @@
+{% extends "django_mail/base.html" %}
+
+{% block content %}
+  <h1>Invoice {{ number }}</h1>
+  <p>Payment is due by {{ due_date }}. The payment terms are attached.</p>
+{% endblock content %}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Email previews</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        font-family: system-ui, sans-serif;
+      }
+
+      ul {
+        padding: 0;
+        list-style: none;
+      }
+
+      a {
+        color: #1d4ed8;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Email previews</h1>
+    {% if emails %}
+      <ul>
+        {% for email in emails %}
+          <li><a href="{{ email.url }}">{{ email.name }}</a></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>
+        No emails discovered yet. Subclass <code>TemplateEmail</code> and put it in your app's
+        <code>emails</code> module.
+      </p>
+    {% endif %}
+  </body>
+</html>
