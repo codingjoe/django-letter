@@ -1,4 +1,4 @@
-"""Django settings for the django-mail testapp."""
+"""Django settings for the django-letter testapp."""
 
 SECRET_KEY = "django-insecure-testapp-only"
 
@@ -7,7 +7,7 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
-    "django_mail",
+    "django_letter",
     "tests.testapp",
 ]
 

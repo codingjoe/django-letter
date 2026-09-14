@@ -1,20 +1,20 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/codingjoe/django-mail/raw/main/docs/images/logo-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="https://github.com/codingjoe/django-mail/raw/main/docs/images/logo-light.svg">
-    <img alt="django-mail: HTML emails via Django templates." src="https://github.com/codingjoe/django-mail/raw/main/docs/images/logo-light.svg">
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/codingjoe/django-letter/raw/main/docs/images/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://github.com/codingjoe/django-letter/raw/main/docs/images/logo-light.svg">
+    <img alt="django-letter: HTML emails via Django templates." src="https://github.com/codingjoe/django-letter/raw/main/docs/images/logo-light.svg">
   </picture>
 <br>
-  <a href="https://github.com/codingjoe/django-mail/issues/new/choose">Issues</a> |
-  <a href="https://github.com/codingjoe/django-mail/releases">Changelog</a> |
+  <a href="https://github.com/codingjoe/django-letter/issues/new/choose">Issues</a> |
+  <a href="https://github.com/codingjoe/django-letter/releases">Changelog</a> |
   <a href="https://github.com/sponsors/codingjoe">Funding</a> 💚
 </p>
 
-# django-mail [![PyPi Version](https://img.shields.io/pypi/v/django-mail.svg)](https://pypi.python.org/pypi/django-mail/) [![Test Coverage](https://codecov.io/gh/codingjoe/django-mail/branch/main/graph/badge.svg)](https://codecov.io/gh/codingjoe/django-mail) [![GitHub License](https://img.shields.io/github/license/codingjoe/django-mail)](https://raw.githubusercontent.com/codingjoe/django-mail/main/LICENSE)
+# django-letter [![PyPi Version](https://img.shields.io/pypi/v/django-letter.svg)](https://pypi.python.org/pypi/django-letter/) [![Test Coverage](https://codecov.io/gh/codingjoe/django-letter/branch/main/graph/badge.svg)](https://codecov.io/gh/codingjoe/django-letter) [![GitHub License](https://img.shields.io/github/license/codingjoe/django-letter)](https://raw.githubusercontent.com/codingjoe/django-letter/main/LICENSE)
 
 **Write an email once as a Django template. Send it as HTML with inlined CSS and a plain-text alternative.**
 
-django-mail renders your markup, inlines the CSS, and derives a Gmail-style
+django-letter renders your markup, inlines the CSS, and derives a Gmail-style
 plain-text body from the same template.
 
 ## Setup
@@ -22,7 +22,7 @@ plain-text body from the same template.
 1. Add the package:
 
 ```console
-uv add django-mail
+uv add django-letter
 ```
 
 2. Add the app to your settings:
@@ -30,7 +30,7 @@ uv add django-mail
 ```python
 # settings.py
 INSTALLED_APPS = [
-    "django_mail",
+    "django_letter",
     # ...
 ]
 ```
@@ -45,7 +45,7 @@ INSTALLED_APPS = [
 from django.urls import include, path
 
 urlpatterns = [
-    path("emails/", include("django_mail.urls")),
+    path("emails/", include("django_letter.urls")),
 ]
 ```
 
@@ -60,7 +60,7 @@ markup needs. This example attaches the invoice and adds a tracking button:
 # myapp/emails.py
 from django.utils.translation import gettext_lazy as _
 
-from django_mail import TemplateEmail
+from django_letter import TemplateEmail
 
 
 class OrderShippedEmail(TemplateEmail):
@@ -88,8 +88,8 @@ The template extends the bundled base template and fills the `content` block:
 
 ```django
 {# myapp/templates/emails/order_shipped.html #}
-{% extends "django_mail/base.html" %}
-{% load django_mail %}
+{% extends "django_letter/base.html" %}
+{% load django_letter %}
 
 {% block content %}
   <h1>Thanks for your order</h1>
@@ -156,4 +156,4 @@ arguments of the class. `context=` merges extra values over
 
 ## Sponsors
 
-[![Sponsors](https://django.the-box.sh/sponsors/codingjoe/django-mail.svg)](https://github.com/sponsors/codingjoe)
+[![Sponsors](https://django.the-box.sh/sponsors/codingjoe/django-letter.svg)](https://github.com/sponsors/codingjoe)

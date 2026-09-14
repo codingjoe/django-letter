@@ -33,10 +33,10 @@ class TemplateEmailPreviewView(generic.View):
             return HttpResponse(email.html, content_type="text/html; charset=utf-8")
         return render(
             request,
-            "django_mail/preview.html",
+            "django_letter/preview.html",
             {
                 "email_name": email_class.__name__,
-                "list_url": reverse("django_mail:list"),
+                "list_url": reverse("django_letter:list"),
             },
         )
 
@@ -45,12 +45,12 @@ class TemplateEmailListView(generic.View):
     def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         return render(
             request,
-            "django_mail/list.html",
+            "django_letter/list.html",
             {
                 "emails": [
                     {
                         "name": email_class.__name__,
-                        "url": reverse("django_mail:preview", kwargs={"slug": slug}),
+                        "url": reverse("django_letter:preview", kwargs={"slug": slug}),
                     }
                     for slug, email_class in sorted(
                         TemplateEmail.get_email_classes().items()

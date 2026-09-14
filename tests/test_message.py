@@ -6,7 +6,7 @@ import pytest
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import translation
 
-from django_mail import TemplateEmail
+from django_letter import TemplateEmail
 from tests.testapp.emails import InvoiceEmail, WelcomeEmail
 
 

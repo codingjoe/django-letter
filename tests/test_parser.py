@@ -2,7 +2,7 @@
 
 import pytest
 
-from django_mail.parser import html_to_text
+from django_letter.parser import html_to_text
 
 
 @pytest.mark.parametrize(

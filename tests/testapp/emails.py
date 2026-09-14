@@ -6,7 +6,7 @@ from collections.abc import Iterator
 
 from django.utils.translation import gettext_lazy as _
 
-from django_mail import TemplateEmail
+from django_letter import TemplateEmail
 
 
 class WelcomeEmail(TemplateEmail):

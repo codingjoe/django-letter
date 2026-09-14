@@ -3,7 +3,7 @@ build-backend = "flit_scm:buildapi"
 requires = [ "flit-core>=3.2", "flit-scm" ]
 
 [project]
-name = "django-mail"
+name = "django-letter"
 readme = "README.md"
 keywords = [ "Django", "email", "HTML" ]
 license = { file = "LICENSE" }
@@ -34,12 +34,12 @@ name = "Johannes Maron"
 email = "johannes@maron.family"
 [project.urls]
 # https://packaging.python.org/en/latest/specifications/well-known-project-urls/#well-known-labels
-Changelog = "https://github.com/codingjoe/django-mail/releases"
+Changelog = "https://github.com/codingjoe/django-letter/releases"
 Funding = "https://github.com/sponsors/codingjoe"
-Homepage = "https://github.com/codingjoe/django-mail"
-Issues = "https://github.com/codingjoe/django-mail/issues"
-Releasenotes = "https://github.com/codingjoe/django-mail/releases/latest"
-Source = "https://github.com/codingjoe/django-mail"
+Homepage = "https://github.com/codingjoe/django-letter"
+Issues = "https://github.com/codingjoe/django-letter/issues"
+Releasenotes = "https://github.com/codingjoe/django-letter/releases/latest"
+Source = "https://github.com/codingjoe/django-letter"
 
 [dependency-groups]
 dev = [
@@ -53,10 +53,10 @@ test = [
 ]
 
 [tool.setuptools_scm]
-write_to = "django_mail/_version.py"
+write_to = "django_letter/_version.py"
 
 [tool.ruff]
-src = [ "django_mail", "tests" ]
+src = [ "django_letter", "tests" ]
 [tool.ruff.lint]
 extend-select = [
   "C90",  # mccabe
@@ -80,7 +80,7 @@ extend-select = [
 ignore = [ "D1", "D203", "E501", "RUF01" ]
 isort.combine-as-imports = true
 isort.force-wrap-aliases = true
-isort.known-first-party = [ "django_mail", "tests" ]
+isort.known-first-party = [ "django_letter", "tests" ]
 isort.section-order = [ "future", "standard-library", "third-party", "first-party", "local-folder" ]
 isort.split-on-trailing-comma = true
 pydocstyle.convention = "pep257"
@@ -94,11 +94,11 @@ minversion = "6.1"
 testpaths = [ "tests" ]
 addopts = "--cov --cov-report=xml --cov-report=term --tb=short -rxs"
 DJANGO_SETTINGS_MODULE = "tests.testapp.settings"
-env = [ "DJANGO_MAIL_TEST=true" ]
+env = [ "DJANGO_LETTER_TEST=true" ]
 
 [tool.coverage]
 [tool.coverage.run]
-source = [ "django_mail" ]
+source = [ "django_letter" ]
 branch = true
 [tool.coverage.report]
 skip_covered = true
