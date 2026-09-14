@@ -49,6 +49,22 @@ urlpatterns = [
 ]
 ```
 
+## Preview in the browser
+
+The debug pages import the `emails` module of every installed app, the same way
+that Django imports `admin.py`. Each `TemplateEmail` subclass with a
+`template_name` and a `subject` gets a page with a desktop frame and a mobile
+frame:
+
+![WelcomeEmail in the desktop frame and the mobile frame of the preview page](https://github.com/codingjoe/django-letter/raw/main/docs/images/preview.png)
+
+`/emails/` shows the list of emails. `/emails/messages/<slug>/` shows one email.
+The slug is the class name in lowercase, so `WelcomeEmail` becomes
+`welcomeemail`. Add `?plain=1` for the plain-text body, `?raw=1` for the HTML
+body alone, and `?lang=de` to change the language. An unknown slug gives a 404.
+
+The routes exist only while `settings.DEBUG` is `True`.
+
 ## Usage
 
 ### Make a pretty email
