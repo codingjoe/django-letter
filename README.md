@@ -21,33 +21,37 @@ plain-text body from the same template.
 
 1. Add the package:
 
-```console
-uv add django-letter
-```
+   ```console
+   uv add django-letter
+   ```
 
-2. Add the app to your settings:
+1. Add the app to your settings:
 
-```python
-# settings.py
-INSTALLED_APPS = [
-    "django_letter",
-    # ...
-]
-```
+   ```python
+   # settings.py
+   INSTALLED_APPS = [
+       "django_letter",
+       # ...
+   ]
+   ```
 
-3. Add an `emails.py` module to each app that sends mail. Put it next to that
+1. Add an `emails.py` module to each app that sends mail. Put it next to that
    app's `views.py`.
 
 1. Mount the debug pages in your root URLconf:
 
-```python
-# urls.py
-from django.urls import include, path
+   ```python
+   # urls.py
+   from django.urls import include, path
 
-urlpatterns = [
-    path("emails/", include("django_letter.urls")),
-]
-```
+   urlpatterns = [
+       path("emails/", include("django_letter.urls")),
+   ]
+   ```
+
+   While `DEBUG` is true, you can preview each email at `/emails/`:
+
+   ![WelcomeEmail in the desktop frame and the mobile frame of the preview page](https://github.com/codingjoe/django-letter/raw/main/docs/images/preview.png)
 
 ## Usage
 
