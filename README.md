@@ -139,6 +139,7 @@ them:
 
 ```python
 OrderShippedEmail(order, to=["customer@example.com"], language="de").send()
+OrderShippedEmail.to_user(user, order=order, language="de").send()
 ```
 
 ### Test it

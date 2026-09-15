@@ -4,9 +4,9 @@ import logging
 import typing
 from collections.abc import Iterator
 from email.message import Message
+from email.utils import formataddr
 
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
 from django.core.mail import EmailMultiAlternatives
 from django.http import HttpRequest
 from django.template import loader
@@ -14,7 +14,15 @@ from django.utils import translation
 from django.utils.text import slugify
 from premailer import premailer
 
+from .exceptions import (
+    EmailImproperlyConfigured,
+    InactiveUserError,
+    MissingEmailError,
+)
 from .parser import html_to_text
+
+if typing.TYPE_CHECKING:
+    from django.contrib.auth.models import AbstractUser
 
 __all__ = ["TemplateEmail"]
 
@@ -47,16 +55,42 @@ class TemplateEmail(EmailMultiAlternatives):
         return classes
 
     def __init__(
-        self, language: str | None = None, base_url: str | None = None, **kwargs
+        self,
+        language: str | None = None,
+        base_url: str | None = None,
+        extra_context: dict[str, typing.Any] | None = None,
+        **kwargs,
     ) -> None:
         """Set the language of this message and fill the class defaults."""
         if settings.USE_I18N and not language:
-            raise ImproperlyConfigured(  # noqa: TRY003
-                f"{type(self).__qualname__} is missing a language."
-            )
+            raise EmailImproperlyConfigured(type(self), "is missing a language")
         self.language = language or translation.get_language()
         self.base_url = base_url or type(self).base_url
+        self.extra_context = extra_context or {}
         super().__init__(**{"subject": self.subject} | kwargs)
+
+    @classmethod
+    def to_user(cls, user: AbstractUser, **kwargs) -> TemplateEmail:
+        """
+        Return an email addressed to the given recipient.
+
+        The full name becomes the display name, and the user joins the template
+        context. Pass the values of the subclass and `language` as keyword
+        arguments; `to=` and `extra_context` are set here.
+
+        Raises:
+            InactiveUserError: If the recipient is deactivated.
+            MissingEmailError: If the recipient has no email address.
+        """
+        if not user.email:
+            raise MissingEmailError(user)
+        if not user.is_active:
+            raise InactiveUserError(user)
+        return cls(
+            to=[formataddr((user.get_full_name(), user.email))],
+            extra_context={"user": user},
+            **kwargs,
+        )
 
     def message(self, **kwargs) -> Message:
         self.render()
@@ -65,13 +99,16 @@ class TemplateEmail(EmailMultiAlternatives):
     def get_template(self) -> str:
         """Return the configured markup, raising `ImproperlyConfigured` when unset."""
         if not self.template_name:
-            raise ImproperlyConfigured(  # noqa: TRY003
-                f"{type(self).__qualname__} is missing a template."
-            )
+            raise EmailImproperlyConfigured(type(self), "is missing a template")
         return self.template_name
 
     def get_context_data(self) -> dict[str, typing.Any]:
-        return {}
+        """
+        Return the values the template needs.
+
+        An override calls `super().get_context_data()` to keep `extra_context`.
+        """
+        return {**self.extra_context}
 
     def get_subject(self, **context) -> str:
         """
@@ -80,9 +117,7 @@ class TemplateEmail(EmailMultiAlternatives):
         Raise `ImproperlyConfigured` when a subclass leaves that line empty.
         """
         if not self.subject:
-            raise ImproperlyConfigured(  # noqa: TRY003
-                f"{type(self).__qualname__} is missing a subject."
-            )
+            raise EmailImproperlyConfigured(type(self), "is missing a subject")
         return self.subject % context
 
     def get_preheader(self, **context) -> str:
@@ -108,9 +143,10 @@ class TemplateEmail(EmailMultiAlternatives):
                 (host for host in settings.ALLOWED_HOSTS if host and host != "*"), None
             )
         ) is None:
-            raise ImproperlyConfigured(  # noqa: TRY003
-                f"{type(self).__qualname__} cannot build a base URL."
-                " Set `base_url` or add a host to ALLOWED_HOSTS."
+            raise EmailImproperlyConfigured(
+                type(self),
+                "cannot build a base URL."
+                " Set `base_url` or add a host to ALLOWED_HOSTS",
             )
         secure = settings.SECURE_PROXY_SSL_HEADER or settings.SECURE_HSTS_SECONDS
         return f"{'https' if secure else 'http'}://{host.removeprefix('.')}"

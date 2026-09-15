@@ -3,11 +3,28 @@
 import re
 
 import pytest
+from django.contrib.auth.models import User
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import translation
 
 from django_letter import TemplateEmail
+from django_letter.exceptions import (
+    EmailImproperlyConfigured,
+    InactiveUserError,
+    InvalidUserError,
+    MissingEmailError,
+)
 from tests.testapp.emails import InvoiceEmail, WelcomeEmail
+
+
+@pytest.fixture
+def user() -> User:
+    return User(
+        username="ada",
+        first_name="Ada",
+        last_name="Lovelace",
+        email="ada@example.com",
+    )
 
 
 class UnnamedTemplateEmail(TemplateEmail):
@@ -28,8 +45,28 @@ class DeclaredLanguageEmail(TemplateEmail):
     language = "fr"
 
 
+class GreetingEmail(TemplateEmail):
+    """An email that keeps the default context to greet its user."""
+
+    template_name = "testapp/welcome.html"
+
+    def get_context_data(self) -> dict[str, object]:
+        return super().get_context_data() | {"name": "Ada"}
+
+
 def test_get_context_data_defaults_to_empty() -> None:
     assert TemplateEmail(language="en").get_context_data() == {}
+
+
+def test_extra_context_joins_the_context() -> None:
+    email = GreetingEmail(language="en", extra_context={"greeting": "Hello"})
+    assert email.get_context_data() == {"greeting": "Hello", "name": "Ada"}
+
+
+def test_get_context_data_returns_a_copy() -> None:
+    email = TemplateEmail(language="en", extra_context={"greeting": "Hello"})
+    email.get_context_data()["greeting"] = "Hi"
+    assert email.get_context_data() == {"greeting": "Hello"}
 
 
 def test_slug() -> None:
@@ -216,3 +253,69 @@ def test_base_url_argument_wins(settings) -> None:
     assert email.get_base_url() == "https://argument.example.com"
     email.render()
     assert "https://argument.example.com/welcome/confirm" in email.html
+
+
+def test_to_user(user) -> None:
+    assert WelcomeEmail.to_user(user, language="en").to == [
+        "Ada Lovelace <ada@example.com>"
+    ]
+
+
+def test_to_user_joins_the_context(user) -> None:
+    assert GreetingEmail.to_user(user, language="en").get_context_data() == {
+        "user": user,
+        "name": "Ada",
+    }
+
+
+def test_to_user_without_a_full_name(user) -> None:
+    user.first_name = ""
+    user.last_name = ""
+    assert WelcomeEmail.to_user(user, language="en").to == ["ada@example.com"]
+
+
+def test_to_user_passes_arguments_through(user) -> None:
+    email = WelcomeEmail.to_user(user, language="en", cc=["heidi@example.com"])
+    assert email.cc == ["heidi@example.com"]
+
+
+def test_to_user_addresses_the_message(user, settings) -> None:
+    settings.ALLOWED_HOSTS = ["example.com"]
+    message = WelcomeEmail.to_user(user, language="en").message()
+    assert message["To"] == "Ada Lovelace <ada@example.com>"
+    assert message["Subject"] == "Welcome, Ada"
+
+
+def test_to_user_without_email(user) -> None:
+    user.email = ""
+    with pytest.raises(MissingEmailError, match="ada has no email address."):
+        WelcomeEmail.to_user(user, language="en")
+
+
+def test_to_user_inactive(user) -> None:
+    user.is_active = False
+    with pytest.raises(InactiveUserError, match="ada is inactive."):
+        WelcomeEmail.to_user(user, language="en")
+
+
+def test_invalid_user_errors_are_value_errors() -> None:
+    assert issubclass(InactiveUserError, InvalidUserError)
+    assert issubclass(MissingEmailError, InvalidUserError)
+    assert issubclass(InvalidUserError, ValueError)
+
+
+def test_email_improperly_configured_renders_the_class() -> None:
+    error = EmailImproperlyConfigured(WelcomeEmail, "is missing a subject")
+    assert error.email_class is WelcomeEmail
+    assert str(error) == "WelcomeEmail is missing a subject."
+    assert isinstance(error, ImproperlyConfigured)
+
+
+def test_invalid_user_errors_render_the_user(user) -> None:
+    inactive = InactiveUserError(user)
+    assert inactive.user is user
+    assert str(inactive) == "ada is inactive."
+
+    missing = MissingEmailError(user)
+    assert missing.user is user
+    assert str(missing) == "ada has no email address."
