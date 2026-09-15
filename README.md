@@ -158,6 +158,44 @@ arguments of the class. `context=` merges extra values over
 `get_context_data()`. `language=` picks the language. The email carries `html`,
 `body`, `subject` and `attachments`.
 
+### Print the emails to your shell
+
+Point Django at the console backend while you develop, and keep it behind
+`DEBUG` so production still sends real mail:
+
+```python
+# settings.py
+if DEBUG:
+    MAILERS = {"default": {"BACKEND": "django_letter.backends.ConsoleEmailBackend"}}
+```
+
+The message headers and the plain-text body reach the shell. The HTML
+alternative and the attachments stay out, and a line below the separator counts
+what was left out:
+
+```console
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============7264214045523647149=="
+Subject: Invoice 2025-001
+From: billing@example.com
+To: ada@example.com
+Date: Tue, 15 Sep 2026 16:46:14 +0000
+Message-ID: <178949077460.48066.7983759548031159413@example.com>
+
+--===============7264214045523647149==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Payment is due by 1 June. Invoice 2025-001
+
+Payment is due by 1 June. The payment terms are attached.
+
+--===============7264214045523647149==--
+
+-------------------------------------------------------------------------------
+2 more part(s) have been omitted.
+```
+
 ## Sponsors
 
 [![Sponsors](https://django.the-box.sh/sponsors/codingjoe/django-letter.svg)](https://github.com/sponsors/codingjoe)
