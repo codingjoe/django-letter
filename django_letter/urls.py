@@ -15,7 +15,7 @@ if settings.DEBUG or os.environ.get("DJANGO_LETTER_TEST") == "true":
     urlpatterns = [
         path("", views.TemplateEmailListView.as_view(), name="list"),
         path(
-            "messages/<slug:slug>/",
+            "<slug:slug>/",
             views.TemplateEmailPreviewView.as_view(),
             name="preview",
         ),
