@@ -82,15 +82,15 @@ class TemplateEmail(EmailMultiAlternatives):
             InactiveUserError: If the recipient is deactivated.
             MissingEmailError: If the recipient has no email address.
         """
-        if not user.email:
-            raise MissingEmailError(user)
-        if not user.is_active:
+        if email := getattr(user, user.EMAIL_FIELD):
+            if user.is_active:
+                return cls(
+                    to=[formataddr((user.get_full_name(), email))],
+                    extra_context={"user": user},
+                    **kwargs,
+                )
             raise InactiveUserError(user)
-        return cls(
-            to=[formataddr((user.get_full_name(), user.email))],
-            extra_context={"user": user},
-            **kwargs,
-        )
+        raise MissingEmailError(user)
 
     def message(self, **kwargs) -> Message:
         self.render()
