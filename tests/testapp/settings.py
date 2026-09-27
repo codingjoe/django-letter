@@ -9,9 +9,12 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.contenttypes",
+    "django.contrib.staticfiles",
     "django_letter",
     "tests.testapp",
 ]
+
+STATIC_URL = "static/"
 
 DATABASES = {
     "default": {

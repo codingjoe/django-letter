@@ -55,6 +55,10 @@ repos:
     rev: v0.21.0
     hooks:
       - id: yamlfmt
+  - repo: https://github.com/codingjoe/esupgrade
+    rev: 2025.22.2
+    hooks:
+      - id: esupgrade
   - repo: local
     hooks:
       - id: svgo
