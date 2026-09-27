@@ -129,6 +129,12 @@ def test_preview_invert_css() -> None:
     assert css == EXPECTED_INVERT_CSS
 
 
+def test_preview_forces_the_frame_scheme() -> None:
+    """The message follows the system scheme, so the frame's scheme is forced."""
+    declaration = script_declaration(preview_script(), "applyScheme")
+    assert "doc.documentElement.style.colorScheme = scheme;" in declaration
+
+
 def test_preview_invert_frame_rule(client) -> None:
     rules = declared_rules(preview_content(client))
     assert rules.get('html[data-theme="invert"] iframe') == {

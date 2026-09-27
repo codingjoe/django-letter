@@ -58,6 +58,7 @@ function forceScheme(text, scheme) {
  * @param {string} scheme - The scheme to force.
  */
 function applyScheme(doc, scheme) {
+  doc.documentElement.style.colorScheme = scheme;
   for (const sheet of doc.styleSheets) {
     let rules;
     try {
