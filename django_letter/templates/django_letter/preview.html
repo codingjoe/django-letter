@@ -1,10 +1,36 @@
-<!DOCTYPE html>
-<html lang="en">
+{% load static %}<!DOCTYPE html>
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ email_name }}</title>
+    <script type="module" src="{% static 'django_letter/preview.js' %}"></script>
     <style>
+      :root {
+        color-scheme: light;
+        --page: #ffffff;
+        --surface: #f3f4f6;
+        --text: #111827;
+        --border: #e5e7eb;
+        --link: #1d4ed8;
+        --active: #1d4ed8;
+        --active-text: #ffffff;
+        --frame: #ffffff;
+      }
+
+      html[data-theme='invert'],
+      html[data-theme='author'] {
+        color-scheme: dark;
+        --page: #0b1120;
+        --surface: #1f2937;
+        --text: #e5e7eb;
+        --border: #334155;
+        --link: #93c5fd;
+        --active: #2563eb;
+        --active-text: #ffffff;
+        --frame: #111827;
+      }
+
       html,
       body {
         height: 100%;
@@ -14,6 +40,8 @@
         display: flex;
         flex-direction: column;
         margin: 0;
+        background-color: var(--page);
+        color: var(--text);
         font-family: system-ui, sans-serif;
       }
 
@@ -25,11 +53,47 @@
       }
 
       nav a {
-        color: #1d4ed8;
+        color: var(--link);
       }
 
       nav strong {
         margin-right: auto;
+      }
+
+      .themes {
+        display: flex;
+        margin-right: 12px;
+        padding: 2px;
+        gap: 2px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background-color: var(--surface);
+        font-size: 13px;
+      }
+
+      .themes label {
+        position: relative;
+        padding: 4px 10px;
+        border-radius: 4px;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+
+      .themes input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+      }
+
+      .themes label:has(:checked) {
+        background-color: var(--active);
+        color: var(--active-text);
+      }
+
+      .themes label:has(:focus-visible) {
+        outline: 2px solid var(--link);
+        outline-offset: 1px;
       }
 
       main {
@@ -42,9 +106,17 @@
 
       iframe {
         height: 100%;
-        border: 1px solid #e5e7eb;
+        border: 1px solid var(--border);
         border-radius: 8px;
+        background-color: var(--frame);
+        color-scheme: light;
+      }
+
+      /* The frame is filtered whole, so its chrome starts light and inverts to dark. */
+      html[data-theme='invert'] iframe {
+        border-color: #e5e7eb;
         background-color: #ffffff;
+        filter: invert(1) hue-rotate(180deg);
       }
 
       .desktop {
@@ -61,13 +133,28 @@
   <body>
     <nav>
       <strong>{{ email_name }}</strong>
+      <div class="themes" role="radiogroup" aria-label="Preview theme">
+        <label title="The message as it is sent.">
+          <input type="radio" name="theme" value="light">
+          Light
+        </label>
+        <label title="Gmail and Outlook dark mode: the message is inverted, its images are not.">
+          <input type="radio" name="theme" value="invert">
+          Dark (invert)
+        </label>
+        <label title="Apple Mail dark mode: the dark styles of the message itself apply.">
+          <input type="radio" name="theme" value="author">
+          Dark (styles)
+        </label>
+      </div>
       <a href="{{ list_url }}">All emails</a>
       <a href="{% querystring plain=1 %}" target="_blank">Plain text</a>
       <a href="{% querystring raw=1 %}" target="_blank">HTML</a>
     </nav>
     <main>
-      <iframe class="desktop" src="{% querystring raw=1 %}"></iframe>
-      <iframe class="mobile" src="{% querystring raw=1 %}"></iframe>
+      {# `allow-same-origin` lets the themes read the message, nothing more. #}
+      <iframe class="desktop" src="{% querystring raw=1 %}" sandbox="allow-same-origin"></iframe>
+      <iframe class="mobile" src="{% querystring raw=1 %}" sandbox="allow-same-origin"></iframe>
     </main>
   </body>
 </html>

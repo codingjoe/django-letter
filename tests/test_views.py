@@ -1,10 +1,174 @@
 """Behaviour of the debug preview routes."""
 
+import json
+import re
+import shutil
+import subprocess
+from pathlib import Path
+
+import pytest
 from django.urls import reverse
+
+import django_letter
+
+NODE = shutil.which("node")
+needs_node = pytest.mark.skipif(
+    NODE is None, reason="node is required to run the preview script"
+)
+
+SCRIPT = Path(django_letter.__file__).parent / "static" / "django_letter" / "preview.js"
+
+EXPECTED_SANDBOX = "allow-same-origin"
+
+EXPECTED_INVERT_CSS = "img, video, svg { filter: invert(1) hue-rotate(180deg) }"
+
+# Values read back from a browser as `MediaList.mediaText`.
+FORCE_SCHEME_CASES = [
+    ("(prefers-color-scheme: dark), (max-width: 600px)", "light", "(max-width: 600px)"),
+    ("(prefers-color-scheme: dark), (max-width: 600px)", "dark", "all"),
+    (
+        "screen and (min-width: 100px) and (prefers-color-scheme: dark)",
+        "dark",
+        "screen and (min-width: 100px)",
+    ),
+    (
+        "screen and (min-width: 100px) and (prefers-color-scheme: dark)",
+        "light",
+        "not all",
+    ),
+    ("(prefers-color-scheme: dark)", "dark", "all"),
+    ("(prefers-color-scheme: dark)", "light", "not all"),
+    ("(prefers-color-scheme: light), (prefers-color-scheme: dark)", "light", "all"),
+]
 
 
 def preview_url(slug: str) -> str:
     return reverse("django_letter:preview", kwargs={"slug": slug})
+
+
+def preview_content(client) -> str:
+    return client.get(preview_url("welcomeemail")).content.decode()
+
+
+def preview_script() -> str:
+    return SCRIPT.read_text()
+
+
+def declared_rules(content: str) -> dict[str, set[str]]:
+    style = re.sub(
+        r"/\*.*?\*/",
+        "",
+        "".join(re.findall(r"<style>(.*?)</style>", content, re.DOTALL)),
+        flags=re.DOTALL,
+    )
+    return {
+        " ".join(selector.replace("'", '"').split()): {
+            " ".join(declaration.split())
+            for declaration in body.split(";")
+            if declaration.strip()
+        }
+        for selector, body in re.findall(r"([^{}]*)\{([^}]*)\}", style)
+    }
+
+
+def script_declaration(script: str, name: str) -> str:
+    start = script.find(f"function {name}(")
+    if start == -1:
+        start = script.find(f"const {name} =")
+    assert start != -1, f"{name} is missing from the preview script"
+    depth = 0
+    for end, character in enumerate(script[start:], start):
+        if character == "{":
+            depth += 1
+        elif character == "}":
+            depth -= 1
+            if depth == 0:
+                return script[start : end + 1]
+    pytest.fail(f"{name} is unterminated")
+
+
+def node_json(program: str) -> object:
+    result = subprocess.run(
+        [NODE, "-e", program], capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stderr
+    return json.loads(result.stdout)
+
+
+def test_preview_theme_toggle(client) -> None:
+    content = preview_content(client)
+    script = preview_script()
+
+    values = re.findall(r'<input type="radio" name="theme" value="([^"]+)">', content)
+    assert values == ["light", "invert", "author"]
+
+    assert content.index('src="/static/django_letter/preview.js"') < content.index(
+        "<style>"
+    )
+
+    assert 'data-theme="light"' in content
+
+    stored = re.search(r"(\[[^\]]+\])\.includes\(stored\)", script)
+    assert stored, "the preview script must restore a stored theme"
+    assert json.loads(stored.group(1)) == values
+
+    assert 'const KEY = "django-letter:preview-theme"' in script
+    assert "localStorage.getItem(KEY)" in script
+    assert "localStorage.setItem(KEY" in script
+
+
+def test_preview_sandbox_attributes(client) -> None:
+    sandbox = re.findall(r'<iframe\b[^>]*\bsandbox="([^"]*)"', preview_content(client))
+    assert sandbox == [EXPECTED_SANDBOX, EXPECTED_SANDBOX]
+
+
+def test_preview_invert_css() -> None:
+    match = re.search(r"const INVERT_CSS\s*=\s*(.*?);", preview_script(), re.DOTALL)
+    assert match, "the preview page must define INVERT_CSS"
+    css = " ".join("".join(re.findall(r'"([^"]*)"', match.group(1))).split())
+    assert css == EXPECTED_INVERT_CSS
+
+
+def test_preview_invert_frame_rule(client) -> None:
+    rules = declared_rules(preview_content(client))
+    assert rules.get('html[data-theme="invert"] iframe') == {
+        "filter: invert(1) hue-rotate(180deg)",
+        "border-color: #e5e7eb",
+        "background-color: #ffffff",
+    }
+
+
+@needs_node
+def test_preview_email_scheme_table() -> None:
+    declaration = script_declaration(preview_script(), "EMAIL_SCHEME")
+    scheme = node_json(f"{declaration};\nconsole.log(JSON.stringify(EMAIL_SCHEME));")
+    assert scheme == {"light": "light", "invert": "light", "author": "dark"}
+
+
+@needs_node
+def test_preview_force_scheme() -> None:
+    script = preview_script()
+    preference = re.search(r"const PREFERENCE\s*=\s*.*?;", script)
+    assert preference, "the preview script must define PREFERENCE"
+    program = "\n".join(
+        [
+            preference.group(0),
+            script_declaration(script, "forceScheme"),
+            f"const cases = {json.dumps([case[:2] for case in FORCE_SCHEME_CASES])};",
+            "console.log(JSON.stringify(cases.map((c) => forceScheme(...c))));",
+        ]
+    )
+    results = node_json(program)
+    for case, actual in zip(FORCE_SCHEME_CASES, results):
+        assert actual == case[2], f"forceScheme({case[0]!r}, {case[1]!r}) -> {actual!r}"
+
+
+@needs_node
+def test_preview_script_parses() -> None:
+    result = subprocess.run(
+        [NODE, "--check", SCRIPT], capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_list(client) -> None:
