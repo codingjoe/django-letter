@@ -30,6 +30,8 @@ SOFTWARE.
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
     <title>{{ subject }}</title>
     <style media="all" type="text/css">
       /* -------------------------------------
@@ -319,6 +321,45 @@ SOFTWARE.
           line-height: inherit;
           font-family: inherit;
           text-decoration: none;
+        }
+      }
+      @media (prefers-color-scheme: dark) {
+        body,
+        .body {
+          background-color: #0b1120 !important;
+        }
+        body {
+          color: #e5e7eb !important;
+        }
+        .main {
+          border-color: #334155 !important;
+          background-color: #1f2937 !important;
+        }
+        a,
+        .text-link {
+          color: #93c5fd !important;
+        }
+        .footer td,
+        .footer p,
+        .footer span,
+        .footer a {
+          color: #9ca3af !important;
+        }
+        .btn table td {
+          background-color: #1f2937 !important;
+        }
+        .btn a {
+          border-color: #93c5fd !important;
+          background-color: #1f2937 !important;
+          color: #93c5fd !important;
+        }
+        .btn-primary table td {
+          background-color: #0867ec !important;
+        }
+        .btn-primary a {
+          border-color: #0867ec !important;
+          background-color: #0867ec !important;
+          color: #ffffff !important;
         }
       }
     </style>
