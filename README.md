@@ -92,7 +92,24 @@ the template. Write `%%` for a literal percent sign. `gen_attachments()` yields
 `(filename, content, MIME type)` tuples. Use `None` as the MIME type and Python
 guesses it from the file name.
 
-The template extends the bundled base template and fills the `content` block:
+Write `{% attached_static %}` where the markup needs a picture. It takes the
+same path as `{% static %}`, and the message carries the file with it:
+
+```django
+{# myapp/templates/emails/newsletter.html #}
+{% extends "django_letter/base.html" %}
+{% load django_letter %}
+
+{% block content %}
+  <img src="{% attached_static 'images/logo.png' %}" alt="Logo">
+{% endblock content %}
+```
+
+The same tag works in your web views and in the debug pages, where it
+returns the plain static URL.
+
+The `OrderShippedEmail` template extends the bundled base template and fills the
+`content` block:
 
 ```django
 {# myapp/templates/emails/order_shipped.html #}

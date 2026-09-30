@@ -2,6 +2,7 @@
 
 from django.template import Context, Template
 from django.template.loader import render_to_string
+from django.templatetags.static import static
 
 TABLE = '<table role="presentation" border="0" cellpadding="0" cellspacing="0"'
 
@@ -38,6 +39,13 @@ def test_button_renders_table_classes() -> None:
     assert f'{TABLE} class="btn btn-primary">' in primary
     plain = render('{% button href="/later" value="Later" %}')
     assert f'{TABLE} class="btn">' in plain
+
+
+def test_attached_static_outside_a_message_renders_the_static_url() -> None:
+    """Web views share the template, so the tag falls back to the static URL."""
+    assert render("{% attached_static 'testapp/logo.png' %}") == static(
+        "testapp/logo.png"
+    )
 
 
 def test_base_template_renders_tables() -> None:

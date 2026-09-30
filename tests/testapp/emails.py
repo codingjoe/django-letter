@@ -45,3 +45,19 @@ class InvoiceEmail(TemplateEmail):
         """Attach the payment terms and the company logo."""
         yield "terms.txt", b"Payment is due within 30 days.", "text/plain"
         yield "logo.png", b"\x89PNG\r\n", None
+
+
+class LogoEmail(TemplateEmail):
+    """Show the new logo inside the body instead of attaching it."""
+
+    template_name = "testapp/logo.html"
+    subject = _("Say hello to our new logo")
+    preheader = _("The logo sits right in the message.")
+
+
+class RetinaLogoEmail(TemplateEmail):
+    """Show the logo and its high-density twin inside the body."""
+
+    template_name = "testapp/retina.html"
+    subject = _("A sharper logo")
+    preheader = _("Both sizes travel inside the message.")

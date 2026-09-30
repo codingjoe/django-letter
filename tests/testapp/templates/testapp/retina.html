@@ -1,0 +1,9 @@
+{% extends "django_letter/base.html" %}
+{% load django_letter %}
+
+{% block content %}
+  <h1>A sharper logo</h1>
+  <p>Our logo travels inside this message in two densities.</p>
+  <img src="{% attached_static 'testapp/logo.png' %}" alt="The django-letter logo">
+  <img src="{% attached_static 'testapp/logo.png@2x.png' %}" alt="The high-density logo">
+{% endblock content %}

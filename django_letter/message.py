@@ -1,15 +1,22 @@
 from __future__ import annotations
 
 import logging
+import mimetypes
 import typing
 from collections.abc import Iterator
-from email.message import Message
+from email import encoders
+from email.message import Message, MIMEPart
+from email.mime.base import MIMEBase
 from email.utils import formataddr
+from pathlib import Path
 
+import django
 from django.conf import settings
+from django.contrib.staticfiles import finders
 from django.core.mail import EmailMultiAlternatives
 from django.http import HttpRequest
 from django.template import loader
+from django.templatetags.static import static
 from django.utils import translation
 from django.utils.text import slugify
 from premailer import premailer
@@ -26,6 +33,39 @@ if typing.TYPE_CHECKING:
 
 __all__ = ["TemplateEmail"]
 
+EMAIL_CONTEXT_KEY = "_django_letter_email"
+
+
+class StaticImage(typing.NamedTuple):
+    """Pair the file of a picture with the address a browser loads it from."""
+
+    path: Path
+    url: str
+
+
+def _attached_static_part(path: Path, content_id: str) -> Message:
+    maintype, _, subtype = (
+        mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+    ).partition("/")
+    content = path.read_bytes()
+    # attach() takes MIMEPart from Django 6.0 on and MIMEBase below it.
+    if django.VERSION >= (6, 0):
+        part = MIMEPart()
+        part.set_content(
+            content,
+            maintype=maintype,
+            subtype=subtype,
+            disposition="inline",
+            cid=f"<{content_id}>",
+        )
+        return part
+    part = MIMEBase(maintype, subtype)
+    part.set_payload(content)
+    encoders.encode_base64(part)
+    part.add_header("Content-Disposition", "inline")
+    part.add_header("Content-ID", f"<{content_id}>")
+    return part
+
 
 class TemplateEmail(EmailMultiAlternatives):
     """Render the HTML and plain-text bodies of one Django template."""
@@ -35,6 +75,7 @@ class TemplateEmail(EmailMultiAlternatives):
     preheader: str = ""
     base_url: str | None = None
     html: str | None = None
+    attached_static: dict[str, StaticImage]
 
     @classmethod
     def slug(cls) -> str:
@@ -67,6 +108,7 @@ class TemplateEmail(EmailMultiAlternatives):
         self.language = language or translation.get_language()
         self.base_url = base_url or type(self).base_url
         self.extra_context = extra_context or {}
+        self.attached_static = {}
         super().__init__(**{"subject": self.subject} | kwargs)
 
     @classmethod
@@ -76,7 +118,7 @@ class TemplateEmail(EmailMultiAlternatives):
 
         The full name becomes the display name, and the user joins the template
         context. Pass the values of the subclass and `language` as keyword
-        arguments; `to=` and `extra_context` are set here.
+        arguments. The `to=` and `extra_context` values are set here.
 
         Raises:
             InactiveUserError: If the recipient is deactivated.
@@ -156,13 +198,15 @@ class TemplateEmail(EmailMultiAlternatives):
         Return the body markup with the stylesheet applied.
 
         `subject` and `preheader` join the context, and everything renders in the
-        language of the message.
+        language of the message. Pictures that the template asks for with
+        `{% attached_static %}` register on this message.
         """
         with translation.override(self.language):
             self.subject = str(self.get_subject(**context))
             context["subject"] = self.subject
             context["preheader"] = str(self.get_preheader(**context))
             template = loader.get_template(self.get_template())
+            context[EMAIL_CONTEXT_KEY] = self
             return premailer.transform(
                 html=template.render(context),
                 base_url=self.get_base_url(),
@@ -181,6 +225,31 @@ class TemplateEmail(EmailMultiAlternatives):
         """
         yield from ()
 
+    def attach_static(self, name: str) -> str:
+        """
+        Register the file that the finders resolve for `name` on this message.
+
+        The content ID is the base name of the path, so the body gets
+        `cid:<base name>`. The file and its URL go into `attached_static`, and
+        asking again for the same file returns the same address.
+
+        Raises:
+            EmailImproperlyConfigured: If the file is nowhere to be found, or
+                two different files share a base name.
+        """
+        if not (found := finders.find(name)) or not Path(found).is_file():
+            raise EmailImproperlyConfigured(
+                type(self), f"cannot find the static file {name}"
+            )
+        content_id = Path(name).name
+        path = Path(found)
+        if (image := self.attached_static.get(content_id)) and image.path != path:
+            raise EmailImproperlyConfigured(
+                type(self), f"cannot attach two static files named {content_id}"
+            )
+        self.attached_static[content_id] = StaticImage(path, static(name))
+        return f"cid:{content_id}"
+
     def render(self, **context: typing.Any) -> None:
         if self.html is None:
             self.html = self.render_html(**(self.get_context_data() | context))
@@ -188,6 +257,8 @@ class TemplateEmail(EmailMultiAlternatives):
             self.attach_alternative(self.html, "text/html")
             for filename, content, mime_type in self.gen_attachments():
                 self.attach(filename, content, mime_type)
+            for content_id, image in self.attached_static.items():
+                self.attach(_attached_static_part(image.path, content_id))
 
     @classmethod
     def render_preview(
