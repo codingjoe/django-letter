@@ -13,6 +13,7 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 
 from .message import TemplateEmail
 
+MESSAGE_POLICY = "sandbox allow-same-origin; script-src 'none'"
 # No origin is trusted: a picture of the app is a download like any other.
 IMAGE_POLICY = "img-src data:"
 
@@ -52,8 +53,10 @@ class TemplateEmailPreviewView(generic.View):
                 address = image.url if load_images else data_url(image.path)
                 html = html.replace(f"cid:{name}", address)
             response = HttpResponse(html, content_type="text/html; charset=utf-8")
+            policy = [MESSAGE_POLICY]
             if not load_images:
-                response["Content-Security-Policy"] = IMAGE_POLICY
+                policy.append(IMAGE_POLICY)
+            response["Content-Security-Policy"] = "; ".join(policy)
             return response
         return render(
             request,
