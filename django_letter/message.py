@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextvars
 import logging
 import mimetypes
 import typing
@@ -34,9 +33,7 @@ if typing.TYPE_CHECKING:
 
 __all__ = ["TemplateEmail"]
 
-_CURRENT_EMAIL: contextvars.ContextVar[TemplateEmail | None] = contextvars.ContextVar(
-    "django_letter_current_email"
-)
+EMAIL_CONTEXT_KEY = "_django_letter_email"
 
 
 class StaticImage(typing.NamedTuple):
@@ -222,13 +219,9 @@ class TemplateEmail(EmailMultiAlternatives):
             context["subject"] = self.subject
             context["preheader"] = str(self.get_preheader(**context))
             template = loader.get_template(self.get_template())
-            token = _CURRENT_EMAIL.set(self)
-            try:
-                html = template.render(context)
-            finally:
-                _CURRENT_EMAIL.reset(token)
+            context[EMAIL_CONTEXT_KEY] = self
             return premailer.transform(
-                html=html,
+                html=template.render(context),
                 base_url=self.get_base_url(),
                 strip_important=False,
                 cssutils_logging_level=logging.ERROR,
@@ -244,16 +237,6 @@ class TemplateEmail(EmailMultiAlternatives):
         A `None` MIME type lets Python guess from the file name.
         """
         yield from ()
-
-    @classmethod
-    def current(cls) -> TemplateEmail | None:
-        """
-        Return the message that renders right now, if any.
-
-        Everywhere else it is `None`, so `{% attached_static %}` falls back to
-        the plain static URL.
-        """
-        return _CURRENT_EMAIL.get(None)
 
     def attach_static(self, name: str) -> str:
         """

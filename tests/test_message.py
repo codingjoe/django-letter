@@ -277,13 +277,6 @@ def test_attached_static_part_on_django_before_6(monkeypatch) -> None:
     assert_inline_image(part, LOGO.read_bytes())
 
 
-def test_current_is_none_outside_a_render() -> None:
-    email = LogoEmail(language="en")
-    assert TemplateEmail.current() is None
-    email.render()
-    assert TemplateEmail.current() is None
-
-
 def test_render_preview_returns_rendered_email() -> None:
     email = WelcomeEmail.render_preview(language="en")
     assert isinstance(email, WelcomeEmail)

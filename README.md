@@ -112,9 +112,11 @@ without asking for a download:
 
 The same template serves your web views. Outside a rendering message the tag
 falls back to the plain static URL, and the debug pages show that URL as well.
-Asking for the same file twice returns the same address. A missing file, or two
-files that share a base name, raise `EmailImproperlyConfigured`.
-`email.attached_static` pairs every content ID with the file and its URL.
+Include a partial without `only`: that flag starts a fresh context, so the
+message is gone and the tag falls back there too. Asking for the same file
+twice returns the same address. A missing file, or two files that share a base
+name, raise `EmailImproperlyConfigured`. `email.attached_static` pairs every
+content ID with the file and its URL.
 
 The `OrderShippedEmail` template extends the bundled base template and fills the
 `content` block:
