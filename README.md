@@ -57,12 +57,6 @@ plain-text body from the same template.
      <img alt="WelcomeEmail in the desktop and mobile frames of the preview page" src="https://github.com/codingjoe/django-letter/raw/main/docs/images/preview-light.png">
    </picture>
 
-   The preview shows the message in a desktop and a mobile frame. The theme
-   buttons switch between the message as it is sent, the inverted dark mode of
-   Gmail and the dark mode of Apple Mail. The images buttons turn every
-   download off, the pictures of the app itself included, so only the pictures
-   the message carries stay visible, the way clients stop tracking pixels.
-
 ## Usage
 
 ### Make a pretty email
