@@ -216,6 +216,7 @@ def test_list(client) -> None:
     for slug, name in [
         ("invoiceemail", "InvoiceEmail"),
         ("logoemail", "LogoEmail"),
+        ("remoteimagesemail", "RemoteImagesEmail"),
         ("retinalogoemail", "RetinaLogoEmail"),
         ("welcomeemail", "WelcomeEmail"),
     ]:
@@ -252,31 +253,25 @@ def test_preview_raw_points_pictures_at_the_static_url(client) -> None:
     assert "cid:" not in content
 
 
-def test_preview_raw_blocks_pictures_of_other_hosts(client) -> None:
-    """The blocked mode keeps the markup and stops the browser with a policy."""
+def test_preview_raw_blocks_every_download(client) -> None:
+    """The blocked mode stops every download, the pictures of the app included."""
     response = client.get(
-        preview_url("trackingemail"), {"raw": "1", "block_images": "1"}
+        preview_url("remoteimagesemail"), {"raw": "1", "block_images": "1"}
     )
-    assert response["Content-Security-Policy"] == "img-src 'self' data:"
+    # No origin is allowed, so a `{% static %}` picture is a download like any other.
+    assert response["Content-Security-Policy"] == "img-src data:"
     content = response.content.decode()
-    assert 'src="/static/testapp/logo.png"' in content
+    # The picture the message carries is embedded, the way a client embeds it.
+    assert 'src="data:image/png;base64,' in content
+    assert 'src="http://testserver/static/testapp/logo.png"' in content
     assert 'src="https://placehold.co/480x160.png"' in content
-    assert 'src="https://example.com/counter.gif"' in content
 
 
 def test_preview_raw_loads_every_picture_by_default(client) -> None:
-    response = client.get(preview_url("trackingemail"), {"raw": "1"})
+    response = client.get(preview_url("remoteimagesemail"), {"raw": "1"})
     assert "Content-Security-Policy" not in response
-
-
-def test_preview_raw_keeps_the_static_host(client, settings) -> None:
-    """An absolute `STATIC_URL` names the host that stays allowed."""
-    settings.STATIC_URL = "https://cdn.example.com/static/"
-    response = client.get(preview_url("logoemail"), {"raw": "1", "block_images": "1"})
-    assert (
-        response["Content-Security-Policy"]
-        == "img-src 'self' data: https://cdn.example.com"
-    )
+    assert 'src="/static/testapp/logo.png"' in response.content.decode()
+    assert "data:image/png" not in response.content.decode()
 
 
 def test_preview_plain(client) -> None:

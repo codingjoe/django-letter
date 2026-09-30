@@ -59,9 +59,9 @@ plain-text body from the same template.
 
    The preview shows the message in a desktop and a mobile frame. The theme
    buttons switch between the message as it is sent, the inverted dark mode of
-   Gmail and the dark mode of Apple Mail. The images buttons keep the browser
-   from loading the pictures other hosts serve, the way clients stop tracking
-   pixels. The pictures the message carries itself still load.
+   Gmail and the dark mode of Apple Mail. The images buttons turn every
+   download off, the pictures of the app itself included, so only the pictures
+   the message carries stay visible, the way clients stop tracking pixels.
 
 ## Usage
 

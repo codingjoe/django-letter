@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from urllib.parse import urlsplit
+import base64
+import mimetypes
+from pathlib import Path
 
-from django.conf import settings
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
@@ -12,18 +13,15 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 
 from .message import TemplateEmail
 
+# The pictures the app serves itself are downloads too, so the policy names no
+# origin at all: only what the message carries inside stays visible.
+IMAGE_POLICY = "img-src data:"
 
-def image_policy() -> str:
-    """
-    Return the policy that keeps pictures of other hosts out of the preview.
 
-    The pictures the app serves itself stay visible: same-origin URLs, `data:`
-    addresses, and the host of an absolute `STATIC_URL`.
-    """
-    sources = ["'self'", "data:"]
-    if (static := urlsplit(str(settings.STATIC_URL))).netloc:
-        sources.append(f"{static.scheme}://{static.netloc}")
-    return "img-src " + " ".join(sources)
+def data_url(path: Path) -> str:
+    """Return the picture as a `data:` address, the way a client carries it."""
+    mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+    return f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode()}"
 
 
 @method_decorator(xframe_options_exempt, name="dispatch")
@@ -35,8 +33,8 @@ class TemplateEmailPreviewView(generic.View):
     load the raw body, so pictures show up there as plain static URLs, never as
     `cid:` addresses. `?lang=de` switches the language, and an unknown slug is a
     404. `?block_images=1` sends the raw body with an `img-src` policy, so the
-    browser loads the pictures of the app and skips the ones other hosts serve,
-    the way clients stop tracking pixels.
+    browser loads what the message carries inside and stops every download, the
+    pictures of the app itself included, the way clients stop tracking pixels.
     """
 
     def get(self, request: HttpRequest, slug: str, *args, **kwargs) -> HttpResponse:
@@ -54,10 +52,12 @@ class TemplateEmailPreviewView(generic.View):
             html = email.html
             # One content ID can be a prefix of another. Replace the longest first.
             for name in sorted(email.attached_static, key=len, reverse=True):
-                html = html.replace(f"cid:{name}", email.attached_static[name].url)
+                image = email.attached_static[name]
+                address = data_url(image.path) if block_images else image.url
+                html = html.replace(f"cid:{name}", address)
             response = HttpResponse(html, content_type="text/html; charset=utf-8")
             if block_images:
-                response["Content-Security-Policy"] = image_policy()
+                response["Content-Security-Policy"] = IMAGE_POLICY
             return response
         return render(
             request,

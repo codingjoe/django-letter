@@ -21,8 +21,8 @@ from django_letter.message import StaticImage, _attached_static_part
 from tests.testapp.emails import (
     InvoiceEmail,
     LogoEmail,
+    RemoteImagesEmail,
     RetinaLogoEmail,
-    TrackingEmail,
     WelcomeEmail,
 )
 
@@ -109,7 +109,7 @@ def test_get_email_classes() -> None:
         "invoiceemail": InvoiceEmail,
         "logoemail": LogoEmail,
         "retinalogoemail": RetinaLogoEmail,
-        "trackingemail": TrackingEmail,
+        "remoteimagesemail": RemoteImagesEmail,
     }
 
 

@@ -63,9 +63,9 @@ class RetinaLogoEmail(TemplateEmail):
     preheader = _("Both sizes travel inside the message.")
 
 
-class TrackingEmail(TemplateEmail):
-    """Carry one picture and point at another one, the way a counter does."""
+class RemoteImagesEmail(TemplateEmail):
+    """Show which pictures of a message need a download and which do not."""
 
-    template_name = "testapp/tracking.html"
+    template_name = "testapp/remote.html"
     subject = _("News from the workshop")
-    preheader = _("The counter never reaches the message.")
+    preheader = _("Our logo needs no download.")
