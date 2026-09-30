@@ -59,6 +59,8 @@ repos:
     rev: 2025.22.2
     hooks:
       - id: esupgrade
+        # Minified assets are vendored, so they are refetched, never upgraded.
+        exclude: ^django_letter/static/django_letter/[\w.-]+\.min\.js$
   - repo: local
     hooks:
       - id: svgo

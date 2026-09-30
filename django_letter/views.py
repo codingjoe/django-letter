@@ -4,9 +4,11 @@ import base64
 import mimetypes
 from pathlib import Path
 
+from django.conf import settings
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
+from django.utils import translation
 from django.utils.decorators import method_decorator
 from django.views import generic
 from django.views.decorators.clickjacking import xframe_options_exempt
@@ -23,6 +25,24 @@ def data_url(path: Path) -> str:
     return f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode()}"
 
 
+def preview_languages() -> dict[str, str]:
+    if not settings.USE_I18N:
+        return {}
+    languages = {code: str(name) for code, name in settings.LANGUAGES}
+    return languages if len(languages) > 1 else {}
+
+
+def configured_language(language: str) -> str:
+    languages = dict(settings.LANGUAGES)
+    if language in languages:
+        return language
+    try:
+        resolved = translation.get_supported_language_variant(language, strict=False)
+    except LookupError:
+        return language
+    return resolved if resolved in languages else language
+
+
 @method_decorator(xframe_options_exempt, name="dispatch")
 class TemplateEmailPreviewView(generic.View):
     """
@@ -30,8 +50,9 @@ class TemplateEmailPreviewView(generic.View):
 
     `?plain=1` and `?raw=1` return the plain-text and bare bodies. The frames
     load the raw body, so pictures show up there as plain static URLs, never as
-    `cid:` addresses. `?lang=de` switches the language, and an unknown slug is a
-    404. The downloads start stopped, and `?load_images=1` allows them.
+    `cid:` addresses. `?lang=de` switches the language and picks the entry of
+    the switcher, and an unknown slug is a 404. The downloads start stopped,
+    and `?load_images=1` allows them.
     """
 
     def get(self, request: HttpRequest, slug: str, *args, **kwargs) -> HttpResponse:
@@ -58,6 +79,8 @@ class TemplateEmailPreviewView(generic.View):
                 policy.append(IMAGE_POLICY)
             response["Content-Security-Policy"] = "; ".join(policy)
             return response
+        selected = configured_language(language or translation.get_language())
+        languages = preview_languages()
         return render(
             request,
             "django_letter/preview.html",
@@ -65,6 +88,9 @@ class TemplateEmailPreviewView(generic.View):
                 "email_name": email_class.__name__,
                 "list_url": reverse("django_letter:list"),
                 "load_images": load_images,
+                "language": selected,
+                "language_name": languages.get(selected, selected),
+                "languages": languages,
             },
         )
 
