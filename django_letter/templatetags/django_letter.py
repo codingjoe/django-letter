@@ -12,12 +12,8 @@ def attached_static(context: template.Context, name: str) -> str:
     """
     Return the address of a picture that travels inside the message.
 
-    `name` takes the same path as `{% static %}`. While a message renders, it
-    sits in the context, the picture joins it and the tag returns a `cid:`
-    address; a render outside a message, such as a web view, gets the plain
-    static URL. Asking for the same file twice returns the same address; a
-    missing file, or two files that share a base name, raise
-    `EmailImproperlyConfigured`.
+    Takes the path `{% static %}` takes. A picture asked for while a message
+    renders joins that message; anywhere else the plain static URL comes back.
     """
     email = context.get(EMAIL_CONTEXT_KEY)
     return email.attach_static(name) if email else static(name)

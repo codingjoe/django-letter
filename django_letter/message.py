@@ -37,31 +37,18 @@ EMAIL_CONTEXT_KEY = "_django_letter_email"
 
 
 class StaticImage(typing.NamedTuple):
-    """
-    Pair the file of a picture with the address a browser loads it from.
-
-    `attached_static` maps each content ID to one of these: `path` points at the
-    file on disk and `url` at the address the debug pages and web views use.
-    """
+    """Pair the file of a picture with the address a browser loads it from."""
 
     path: Path
     url: str
 
 
 def _attached_static_part(path: Path, content_id: str) -> Message:
-    """
-    Return the inline part that carries the picture stored at `path`.
-
-    Django 6.0 hands `MIMEPart` objects to `attach()`, earlier versions know
-    `MIMEBase` only. Both shapes carry the content type that `mimetypes` guesses
-    from the file name, base64 encoding, an inline disposition and
-    `Content-ID: <content_id>`; `MIMEBase` adds `MIME-Version: 1.0`, like the
-    attachments Django builds on that version itself.
-    """
     maintype, _, subtype = (
         mimetypes.guess_type(path.name)[0] or "application/octet-stream"
     ).partition("/")
     content = path.read_bytes()
+    # attach() takes MIMEPart from Django 6.0 on and MIMEBase below it.
     if django.VERSION >= (6, 0):
         part = MIMEPart()
         part.set_content(
@@ -211,8 +198,8 @@ class TemplateEmail(EmailMultiAlternatives):
         Return the body markup with the stylesheet applied.
 
         `subject` and `preheader` join the context, and everything renders in the
-        language of the message. While the template renders, every
-        `{% attached_static %}` call registers its picture on this message.
+        language of the message. Pictures that the template asks for with
+        `{% attached_static %}` register on this message.
         """
         with translation.override(self.language):
             self.subject = str(self.get_subject(**context))
@@ -240,16 +227,15 @@ class TemplateEmail(EmailMultiAlternatives):
 
     def attach_static(self, name: str) -> str:
         """
-        Register the static file `name` as a picture of this message.
+        Register the file that the finders resolve for `name` on this message.
 
-        The file resolves through the static file finders, and its base name
-        becomes the content ID, so `images/logo.png` returns `cid:logo.png`.
-        Repeating the call returns the same address, and `attached_static` pairs
-        the content ID with the file and the URL that the debug pages show.
+        Returns the `cid:` address for the body, whose content ID is the base
+        name of the path, and records the file and its URL in `attached_static`.
+        Asking for the same file again returns the same address.
 
         Raises:
-            EmailImproperlyConfigured: If no finder resolves the file, or two
-                different files share a base name.
+            EmailImproperlyConfigured: If the file is nowhere to be found, or
+                two different files share a base name.
         """
         if not (found := finders.find(name)) or not Path(found).is_file():
             raise EmailImproperlyConfigured(
