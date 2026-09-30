@@ -61,3 +61,11 @@ class RetinaLogoEmail(TemplateEmail):
     template_name = "testapp/retina.html"
     subject = _("A sharper logo")
     preheader = _("Both sizes travel inside the message.")
+
+
+class TrackingEmail(TemplateEmail):
+    """Carry one picture and point at another one, the way a counter does."""
+
+    template_name = "testapp/tracking.html"
+    subject = _("News from the workshop")
+    preheader = _("The counter never reaches the message.")

@@ -46,8 +46,8 @@ def preview_url(slug: str) -> str:
     return reverse("django_letter:preview", kwargs={"slug": slug})
 
 
-def preview_content(client) -> str:
-    return client.get(preview_url("welcomeemail")).content.decode()
+def preview_content(client, **params) -> str:
+    return client.get(preview_url("welcomeemail"), params).content.decode()
 
 
 def preview_script() -> str:
@@ -87,6 +87,16 @@ def script_declaration(script: str, name: str) -> str:
     pytest.fail(f"{name} is unterminated")
 
 
+def image_toggle(content: str) -> dict[str, tuple[str, bool]]:
+    """Map each images toggle label to its target and whether it is current."""
+    return {
+        label: (href, 'aria-current="true"' in attrs)
+        for href, attrs, label in re.findall(
+            r'<a\s+href="([^"]*)"([^>]*)>\s*(Load|Block)\s*</a>', content, re.DOTALL
+        )
+    }
+
+
 def node_json(program: str) -> object:
     result = subprocess.run(
         [NODE, "-e", program], capture_output=True, text=True, check=False
@@ -120,6 +130,25 @@ def test_preview_theme_toggle(client) -> None:
 def test_preview_sandbox_attributes(client) -> None:
     sandbox = re.findall(r'<iframe\b[^>]*\bsandbox="([^"]*)"', preview_content(client))
     assert sandbox == [EXPECTED_SANDBOX, EXPECTED_SANDBOX]
+
+
+def test_preview_images_toggle(client) -> None:
+    """The images toggle offers both modes and marks the current one."""
+    content = preview_content(client)
+    assert image_toggle(content) == {
+        "Load": ("?", True),
+        "Block": ("?block_images=1", False),
+    }
+    assert content.count('src="?raw=1"') == 2
+
+
+def test_preview_images_toggle_blocks_the_frames(client) -> None:
+    content = preview_content(client, block_images=1)
+    assert image_toggle(content) == {
+        "Load": ("?", False),
+        "Block": ("?block_images=1", True),
+    }
+    assert content.count('src="?block_images=1&amp;raw=1"') == 2
 
 
 def test_preview_invert_css() -> None:
@@ -221,6 +250,32 @@ def test_preview_raw_points_pictures_at_the_static_url(client) -> None:
     # had its shorter sibling replaced first would still carry a plain `@2x`.
     assert 'src="/static/testapp/logo.png%402x.png"' in content
     assert "cid:" not in content
+
+
+def test_preview_raw_blocks_pictures_of_other_hosts(client) -> None:
+    """The blocked mode keeps the markup and stops the browser with a policy."""
+    response = client.get(
+        preview_url("trackingemail"), {"raw": "1", "block_images": "1"}
+    )
+    assert response["Content-Security-Policy"] == "img-src 'self' data:"
+    content = response.content.decode()
+    assert 'src="/static/testapp/logo.png"' in content
+    assert 'src="https://example.com/counter.gif"' in content
+
+
+def test_preview_raw_loads_every_picture_by_default(client) -> None:
+    response = client.get(preview_url("trackingemail"), {"raw": "1"})
+    assert "Content-Security-Policy" not in response
+
+
+def test_preview_raw_keeps_the_static_host(client, settings) -> None:
+    """An absolute `STATIC_URL` names the host that stays allowed."""
+    settings.STATIC_URL = "https://cdn.example.com/static/"
+    response = client.get(preview_url("logoemail"), {"raw": "1", "block_images": "1"})
+    assert (
+        response["Content-Security-Policy"]
+        == "img-src 'self' data: https://cdn.example.com"
+    )
 
 
 def test_preview_plain(client) -> None:
