@@ -202,7 +202,7 @@
       </div>
       <a href="{{ list_url }}">All emails</a>
       <a href="{% querystring plain=1 %}" target="_blank">Plain text</a>
-      <a href="{% querystring raw=1 %}" target="_blank">HTML</a>
+      <a href="{% querystring raw=1 %}" target="_blank" rel="noopener">HTML</a>
     </nav>
     <main>
       {# `allow-same-origin` lets the themes read the message, nothing more. #}

@@ -87,6 +87,14 @@ def script_declaration(script: str, name: str) -> str:
     pytest.fail(f"{name} is unterminated")
 
 
+def content_policy(response) -> dict[str, list[str]]:
+    policy = {}
+    for directive in response["Content-Security-Policy"].split(";"):
+        name, _, tokens = directive.strip().partition(" ")
+        policy[name] = tokens.split()
+    return policy
+
+
 def image_switch(content: str) -> dict[str, str]:
     match = re.search(r'<a[^>]*\brole="switch"[^>]*>.*?</a>', content, re.DOTALL)
     assert match, "the preview must offer one images switch"
@@ -131,6 +139,12 @@ def test_preview_theme_toggle(client) -> None:
 def test_preview_sandbox_attributes(client) -> None:
     sandbox = re.findall(r'<iframe\b[^>]*\bsandbox="([^"]*)"', preview_content(client))
     assert sandbox == [EXPECTED_SANDBOX, EXPECTED_SANDBOX]
+
+
+def test_preview_html_link_has_no_opener(client) -> None:
+    link = re.search(r"<a\b[^>]*>HTML</a>", preview_content(client))
+    assert link, "the preview must offer one HTML link"
+    assert re.search(r'\brel="noopener"', link.group(0))
 
 
 def test_preview_images_switch(client) -> None:
@@ -242,6 +256,14 @@ def test_preview_raw(client) -> None:
     assert "background-color:#0867ec" in response.content.decode()
 
 
+@pytest.mark.parametrize("params", [{"raw": "1"}, {"raw": "1", "load_images": "1"}])
+def test_preview_raw_stays_inert_when_opened_alone(client, params) -> None:
+    policy = content_policy(client.get(preview_url("welcomeemail"), params))
+    assert "allow-same-origin" in policy["sandbox"]
+    assert "allow-scripts" not in policy["sandbox"]
+    assert policy["script-src"] == ["'none'"]
+
+
 def test_preview_raw_points_pictures_at_the_static_url(client) -> None:
     params = {"raw": "1", "load_images": "1"}
     content = client.get(preview_url("logoemail"), params).content.decode()
@@ -266,7 +288,7 @@ def test_preview_raw_resolves_relative_sources_from_the_origin(client) -> None:
 def test_preview_raw_blocks_every_download(client) -> None:
     response = client.get(preview_url("remoteimagesemail"), {"raw": "1"})
     # A `{% static %}` picture is a download like any other, so no origin is allowed.
-    assert response["Content-Security-Policy"] == "img-src data:"
+    assert content_policy(response)["img-src"] == ["data:"]
     content = response.content.decode()
     # The carried picture travels inside, the way a client embeds it.
     assert 'src="data:image/png;base64,' in content
@@ -278,7 +300,7 @@ def test_preview_raw_loads_when_asked(client) -> None:
     response = client.get(
         preview_url("remoteimagesemail"), {"raw": "1", "load_images": "1"}
     )
-    assert "Content-Security-Policy" not in response
+    assert "img-src" not in content_policy(response)
     assert 'src="/static/testapp/logo.png"' in response.content.decode()
     assert "data:image/png" not in response.content.decode()
 
