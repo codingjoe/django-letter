@@ -27,6 +27,26 @@ if (stored) {
 }
 
 /**
+ * Address the preview with tracking blocked or allowed.
+ *
+ * Both states live in the address, so a reload or a copy of the link keeps
+ * the downloads stopped or running.
+ *
+ * @param {string} current - The address of the open preview.
+ * @param {boolean} blocked - Whether the switch stops the downloads.
+ * @returns {string} The address to load next.
+ */
+function trackingUrl(current, blocked) {
+  const url = new URL(current);
+  if (blocked) {
+    url.searchParams.delete("load_images");
+  } else {
+    url.searchParams.set("load_images", "1");
+  }
+  return `${url.pathname}${url.search}`;
+}
+
+/**
  * A media list is a disjunction, a query a conjunction: the forced scheme drops the
  * condition it satisfies and a query it contradicts, and holds if a branch holds.
  *
@@ -93,6 +113,8 @@ function applyToFrame({ contentDocument: doc }, theme) {
 
 function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
+  // The page chrome is Basecoat, which themes through the `dark` class.
+  document.documentElement.classList.toggle("dark", theme !== "light");
   for (const radio of document.querySelectorAll('input[name="theme"]')) {
     radio.checked = radio.value === theme;
   }
@@ -115,5 +137,9 @@ document.addEventListener("DOMContentLoaded", () => {
       applyToFrame(frame, document.documentElement.dataset.theme);
     });
   }
+  const tracking = document.getElementById("block-tracking");
+  tracking?.addEventListener("change", () => {
+    location.assign(trackingUrl(location.href, tracking.checked));
+  });
   applyTheme(document.documentElement.dataset.theme);
 });

@@ -46,6 +46,26 @@ FORCE_SCHEME_CASES = [
     ("(prefers-color-scheme: light), (prefers-color-scheme: dark)", "light", "all"),
 ]
 
+# Address, whether the switch blocks, and the address to load next.
+TRACKING_CASES = [
+    ("http://testserver/emails/welcomeemail/", True, "/emails/welcomeemail/"),
+    (
+        "http://testserver/emails/welcomeemail/?raw=1&load_images=1",
+        True,
+        "/emails/welcomeemail/?raw=1",
+    ),
+    (
+        "http://testserver/emails/welcomeemail/?lang=de",
+        False,
+        "/emails/welcomeemail/?lang=de&load_images=1",
+    ),
+    (
+        "http://testserver/emails/welcomeemail/?load_images=1&raw=1",
+        False,
+        "/emails/welcomeemail/?load_images=1&raw=1",
+    ),
+]
+
 
 def preview_url(slug: str) -> str:
     return reverse("django_letter:preview", kwargs={"slug": slug})
@@ -100,14 +120,17 @@ def content_policy(response) -> dict[str, list[str]]:
     return policy
 
 
-def image_switch(content: str) -> dict[str, str]:
-    match = re.search(r'<a[^>]*\brole="switch"[^>]*>.*?</a>', content, re.DOTALL)
-    assert match, "the preview must offer one images switch"
-    opening = match.group(0)[: match.group(0).index(">")]
+def tracking_switch(content: str) -> dict[str, object]:
+    tag = re.search(r'<input[^>]*\bid="block-tracking"[^>]*>', content)
+    assert tag, "the preview must offer one tracking switch"
+    label = re.search(
+        r'<label[^>]*\bfor="block-tracking"[^>]*>(.*?)</label>', content, re.DOTALL
+    )
+    assert label, "the tracking switch must carry a label"
     return {
-        "href": re.search(r'href="([^"]*)"', opening).group(1),
-        "checked": re.search(r'aria-checked="([^"]*)"', opening).group(1),
-        "label": " ".join(re.sub(r"<[^>]*>", " ", match.group(0)).split()),
+        "role": re.search(r'role="([^"]*)"', tag.group(0)).group(1),
+        "checked": bool(re.search(r"\schecked(?=[\s>])", tag.group(0))),
+        "label": " ".join(label.group(1).split()),
     }
 
 
@@ -139,6 +162,8 @@ def test_preview_theme_toggle(client) -> None:
     assert 'const KEY = "django-letter:preview-theme"' in script
     assert "localStorage.getItem(KEY)" in script
     assert "localStorage.setItem(KEY" in script
+    # The page chrome is Basecoat, which themes through the `dark` class.
+    assert 'classList.toggle("dark", theme !== "light")' in script
 
 
 def test_preview_sandbox_attributes(client) -> None:
@@ -152,21 +177,21 @@ def test_preview_html_link_has_no_opener(client) -> None:
     assert re.search(r'\brel="noopener"', link.group(0))
 
 
-def test_preview_images_switch(client) -> None:
+def test_preview_tracking_switch(client) -> None:
     content = preview_content(client)
-    assert image_switch(content) == {
-        "href": "?load_images=1",
-        "checked": "true",
+    assert tracking_switch(content) == {
+        "role": "switch",
+        "checked": True,
         "label": "Block tracking",
     }
     assert content.count('src="?raw=1"') == 2
 
 
-def test_preview_images_switch_off_loads_the_pictures(client) -> None:
+def test_preview_tracking_switch_off_loads_the_pictures(client) -> None:
     content = preview_content(client, load_images=1)
-    assert image_switch(content) == {
-        "href": "?",
-        "checked": "false",
+    assert tracking_switch(content) == {
+        "role": "switch",
+        "checked": False,
         "label": "Block tracking",
     }
     assert content.count('src="?load_images=1&amp;raw=1"') == 2
@@ -217,6 +242,22 @@ def test_preview_force_scheme() -> None:
     results = node_json(program)
     for case, actual in zip(FORCE_SCHEME_CASES, results):
         assert actual == case[2], f"forceScheme({case[0]!r}, {case[1]!r}) -> {actual!r}"
+
+
+@needs_node
+def test_preview_tracking_url() -> None:
+    script = preview_script()
+    declaration = script_declaration(script, "trackingUrl")
+    program = "\n".join(
+        [
+            declaration,
+            f"const cases = {json.dumps([case[:2] for case in TRACKING_CASES])};",
+            "console.log(JSON.stringify(cases.map((c) => trackingUrl(...c))));",
+        ]
+    )
+    results = node_json(program)
+    for case, actual in zip(TRACKING_CASES, results):
+        assert actual == case[2], f"trackingUrl({case[0]!r}, {case[1]}) -> {actual!r}"
 
 
 @needs_node
@@ -278,9 +319,18 @@ def test_preview(client) -> None:
     response = client.get(url)
     content = response.content.decode()
     assert response.status_code == 200
-    assert "<strong>WelcomeEmail</strong>" in content
+    assert '<nav class="breadcrumb" aria-label="Breadcrumb">' in content
+    assert f'<a href="{reverse("django_letter:list")}">All emails</a>' in content
+    assert '<span aria-current="page">WelcomeEmail</span>' in content
     assert 'src="?raw=1"' in content
     assert 'href="?plain=1"' in content
+
+
+def test_preview_ships_the_basecoat_chrome(client) -> None:
+    content = client.get(preview_url("welcomeemail")).content.decode()
+    assert 'href="/static/django_letter/basecoat.min.css"' in content
+    assert 'class="btn"' in content
+    assert 'data-variant="outline"' in content
 
 
 def test_preview_raw(client) -> None:
