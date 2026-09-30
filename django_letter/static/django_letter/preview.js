@@ -18,12 +18,28 @@ function storedTheme() {
   }
 }
 
-/** Resolve the theme from storage, then the system preference. */
+/**
+ * Point the page and its Basecoat chrome at one theme.
+ *
+ * @param {string} theme - The theme to show.
+ */
+function applyChrome(theme) {
+  document.documentElement.dataset.theme = theme;
+  // Basecoat themes its chrome with the `dark` class.
+  document.documentElement.classList.toggle("dark", theme !== "light");
+}
+
+/**
+ * Resolve the theme from storage, then the system preference.
+ *
+ * The chrome is set here, before the first paint, so it never flashes the
+ * other theme; the frames follow once the page is ready.
+ */
 const stored = storedTheme();
 if (stored) {
-  document.documentElement.dataset.theme = stored;
+  applyChrome(stored);
 } else if (matchMedia("(prefers-color-scheme: dark)").matches) {
-  document.documentElement.dataset.theme = "invert";
+  applyChrome("invert");
 }
 
 /**
@@ -112,9 +128,7 @@ function applyToFrame({ contentDocument: doc }, theme) {
 }
 
 function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme;
-  // The page chrome is Basecoat, which themes through the `dark` class.
-  document.documentElement.classList.toggle("dark", theme !== "light");
+  applyChrome(theme);
   for (const radio of document.querySelectorAll('input[name="theme"]')) {
     radio.checked = radio.value === theme;
   }

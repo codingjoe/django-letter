@@ -309,9 +309,19 @@ def test_list(client) -> None:
         # Each entry is a Basecoat item that shows where the class and its
         # template live.
         assert 'class="item"' in item
-        assert f"<h3>{name}</h3>" in item
+        assert f"<h2>{name}</h2>" in item
         assert "<code>tests.testapp.emails</code>" in item
         assert f"<code>{template}</code>" in item
+
+
+def test_list_keeps_the_link_and_list_roles(client) -> None:
+    """A list item around the link, so neither role replaces the other."""
+    content = client.get(reverse("django_letter:list")).content.decode()
+    assert '<ul class="item-group" role="list">' in content
+    assert re.search(
+        r'<li>\s*<a\b[^>]*class="item"[^>]*>\s*<figure', content, re.DOTALL
+    )
+    assert 'role="listitem"' not in content
 
 
 def test_list_ships_the_basecoat_stylesheet(client) -> None:

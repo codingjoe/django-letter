@@ -40,6 +40,13 @@
         font-family: var(--font-mono);
       }
 
+      /* The group is a real list, so the links keep both their roles. */
+      .item-group {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
       /* The dashed frame of the empty state comes from a Tailwind utility that
          this page has no build step for. */
       .empty {
@@ -67,49 +74,51 @@
       {% endif %}
     </header>
     {% if emails %}
-      <div class="item-group" role="list">
+      <ul class="item-group" role="list">
         {% for email in emails %}
-          <a href="{{ email.url }}" class="item" data-variant="outline" role="listitem">
-            <figure aria-hidden="true">
-              <svg
-                class="lucide lucide-mail"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
-                <rect x="2" y="4" width="20" height="16" rx="2" />
-              </svg>
-            </figure>
-            <section>
-              <h3>{{ email.name }}</h3>
-              <p><code>{{ email.module }}</code> · <code>{{ email.template }}</code></p>
-            </section>
-            <aside aria-hidden="true">
-              <svg
-                class="lucide lucide-chevron-right"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="m9 18 6-6-6-6" />
-              </svg>
-            </aside>
-          </a>
+          <li>
+            <a href="{{ email.url }}" class="item" data-variant="outline">
+              <figure aria-hidden="true">
+                <svg
+                  class="lucide lucide-mail"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
+                  <rect x="2" y="4" width="20" height="16" rx="2" />
+                </svg>
+              </figure>
+              <section>
+                <h2>{{ email.name }}</h2>
+                <p><code>{{ email.module }}</code> · <code>{{ email.template }}</code></p>
+              </section>
+              <aside aria-hidden="true">
+                <svg
+                  class="lucide lucide-chevron-right"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </aside>
+            </a>
+          </li>
         {% endfor %}
-      </div>
+      </ul>
     {% else %}
       <section class="empty">
         <header>
@@ -130,7 +139,7 @@
               <rect x="2" y="4" width="20" height="16" rx="2" />
             </svg>
           </figure>
-          <h3>No emails discovered yet</h3>
+          <h2>No emails discovered yet</h2>
           <p>
             Subclass <code>TemplateEmail</code> and put it in your app's
             <code>emails</code> module.
