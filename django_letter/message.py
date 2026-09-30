@@ -277,7 +277,7 @@ class TemplateEmail(EmailMultiAlternatives):
         """
         email = cls(
             language=language or translation.get_language(),
-            base_url=request.build_absolute_uri() if request else None,
+            base_url=request.build_absolute_uri("/") if request else None,
             **kwargs,
         )
         email.render(**(context or {}))

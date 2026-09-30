@@ -256,6 +256,13 @@ def test_preview_raw_points_pictures_at_the_static_url(client) -> None:
     assert "cid:" not in content
 
 
+def test_preview_raw_resolves_relative_sources_from_the_origin(client) -> None:
+    """A relative source resolves from the site root, not the preview path."""
+    content = client.get(preview_url("invoiceemail"), {"raw": "1"}).content.decode()
+    assert 'src="http://testserver/img/hero.png"' in content
+    assert "/emails/invoiceemail/img/hero.png" not in content
+
+
 def test_preview_raw_blocks_every_download(client) -> None:
     response = client.get(preview_url("remoteimagesemail"), {"raw": "1"})
     # A `{% static %}` picture is a download like any other, so no origin is allowed.
