@@ -87,13 +87,15 @@ def script_declaration(script: str, name: str) -> str:
     pytest.fail(f"{name} is unterminated")
 
 
-def image_toggle(content: str) -> dict[str, tuple[str, bool]]:
-    """Map each images toggle label to its target and whether it is current."""
+def image_switch(content: str) -> dict[str, str]:
+    """Return the target, the state and the label of the images switch."""
+    match = re.search(r'<a[^>]*\brole="switch"[^>]*>.*?</a>', content, re.DOTALL)
+    assert match, "the preview must offer one images switch"
+    opening = match.group(0)[: match.group(0).index(">")]
     return {
-        label: (href, 'aria-current="true"' in attrs)
-        for href, attrs, label in re.findall(
-            r'<a\s+href="([^"]*)"([^>]*)>\s*(Load|Block)\s*</a>', content, re.DOTALL
-        )
+        "href": re.search(r'href="([^"]*)"', opening).group(1),
+        "checked": re.search(r'aria-checked="([^"]*)"', opening).group(1),
+        "label": " ".join(re.sub(r"<[^>]*>", " ", match.group(0)).split()),
     }
 
 
@@ -132,21 +134,23 @@ def test_preview_sandbox_attributes(client) -> None:
     assert sandbox == [EXPECTED_SANDBOX, EXPECTED_SANDBOX]
 
 
-def test_preview_images_toggle(client) -> None:
-    """The images toggle offers both modes and marks the current one."""
+def test_preview_images_switch(client) -> None:
+    """One switch turns the downloads on, and the preview starts without them."""
     content = preview_content(client)
-    assert image_toggle(content) == {
-        "Block": ("?", True),
-        "Load": ("?load_images=1", False),
+    assert image_switch(content) == {
+        "href": "?load_images=1",
+        "checked": "false",
+        "label": "Load images",
     }
     assert content.count('src="?raw=1"') == 2
 
 
-def test_preview_images_toggle_loads_the_frames(client) -> None:
+def test_preview_images_switch_on_the_frames(client) -> None:
     content = preview_content(client, load_images=1)
-    assert image_toggle(content) == {
-        "Block": ("?", False),
-        "Load": ("?load_images=1", True),
+    assert image_switch(content) == {
+        "href": "?",
+        "checked": "true",
+        "label": "Load images",
     }
     assert content.count('src="?load_images=1&amp;raw=1"') == 2
 

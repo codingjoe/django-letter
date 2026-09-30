@@ -90,7 +90,7 @@
       }
 
       .modes label:has(:checked),
-      .modes a[aria-current] {
+      .modes a[aria-checked='true'] {
         background-color: var(--active);
         color: var(--active-text);
       }
@@ -99,6 +99,42 @@
       .modes a:focus-visible {
         outline: 2px solid var(--link);
         outline-offset: 1px;
+      }
+
+      .switch {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .switch .knob {
+        position: relative;
+        width: 22px;
+        height: 12px;
+        border-radius: 6px;
+        background-color: var(--border);
+        transition: background-color 120ms ease;
+      }
+
+      .switch .knob::after {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: var(--text);
+        content: '';
+        transition: translate 120ms ease, background-color 120ms ease;
+      }
+
+      .switch[aria-checked='true'] .knob {
+        background-color: rgba(255, 255, 255, 0.45);
+      }
+
+      .switch[aria-checked='true'] .knob::after {
+        translate: 10px 0;
+        background-color: var(--active-text);
       }
 
       main {
@@ -152,20 +188,16 @@
           Dark (Apple)
         </label>
       </div>
-      <div class="modes" role="group" aria-label="Preview images">
+      <div class="modes">
         <a
-          href="{% querystring load_images=None %}"
-          title="Stop every download and show only the pictures the message carries, the way clients stop tracking pixels."
-          {% if not load_images %}aria-current="true"{% endif %}
+          class="switch"
+          href="{% if load_images %}{% querystring load_images=None %}{% else %}{% querystring load_images=1 %}{% endif %}"
+          role="switch"
+          aria-checked="{{ load_images|yesno:'true,false' }}"
+          title="Download the pictures the message asks for. Without it, only the pictures the message carries stay visible."
         >
-          Block
-        </a>
-        <a
-          href="{% querystring load_images=1 %}"
-          title="Load every picture the message asks for."
-          {% if load_images %}aria-current="true"{% endif %}
-        >
-          Load
+          <span class="knob" aria-hidden="true"></span>
+          Load images
         </a>
       </div>
       <a href="{{ list_url }}">All emails</a>
