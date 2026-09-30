@@ -92,13 +92,8 @@ the template. Write `%%` for a literal percent sign. `gen_attachments()` yields
 `(filename, content, MIME type)` tuples. Use `None` as the MIME type and Python
 guesses it from the file name.
 
-Write `{% attached_static %}` where the markup needs a picture. The tag takes
-the same path as `{% static %}` and resolves it through the static file
-finders, so the file lives in a `static/` directory of an installed app, or in
-one of your `STATICFILES_DIRS`. While the message renders, the picture joins it
-under the base name of the path, and the tag writes the matching `cid:` address,
-such as `cid:logo.png`, into the markup, so the client renders the picture
-without asking for a download:
+Write `{% attached_static %}` where the markup needs a picture. It takes the
+same path as `{% static %}`, and the message carries the file with it:
 
 ```django
 {# myapp/templates/emails/newsletter.html #}
@@ -110,13 +105,8 @@ without asking for a download:
 {% endblock content %}
 ```
 
-The same template serves your web views. Outside a rendering message the tag
-falls back to the plain static URL, and the debug pages show that URL as well.
-Include a partial without `only`: that flag starts a fresh context, so the
-message is gone and the tag falls back there too. Asking for the same file
-twice returns the same address. A missing file, or two files that share a base
-name, raise `EmailImproperlyConfigured`. `email.attached_static` pairs every
-content ID with the file and its URL.
+The same tag works in your web views and in the debug pages, where it
+returns the plain static URL.
 
 The `OrderShippedEmail` template extends the bundled base template and fills the
 `content` block:
