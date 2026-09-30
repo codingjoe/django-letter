@@ -80,3 +80,5 @@ def test_list_page_follows_the_scheme(client) -> None:
     content = client.get(reverse("django_letter:list")).content.decode()
     assert "color-scheme: light dark" in content
     assert "(prefers-color-scheme: dark)" in content
+    # Basecoat themes through the `dark` class, so the page has to set it.
+    assert 'classList.toggle("dark"' in content

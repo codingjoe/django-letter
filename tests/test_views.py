@@ -10,13 +10,18 @@ import pytest
 from django.urls import reverse
 
 import django_letter
+from django_letter import TemplateEmail
 
 NODE = shutil.which("node")
 needs_node = pytest.mark.skipif(
     NODE is None, reason="node is required to run the preview script"
 )
 
-SCRIPT = Path(django_letter.__file__).parent / "static" / "django_letter" / "preview.js"
+STATIC = Path(django_letter.__file__).parent / "static" / "django_letter"
+
+SCRIPT = STATIC / "preview.js"
+
+STYLESHEET = STATIC / "basecoat.min.css"
 
 EXPECTED_SANDBOX = "allow-same-origin"
 
@@ -222,6 +227,14 @@ def test_preview_script_parses() -> None:
     assert result.returncode == 0, result.stderr
 
 
+def list_item(content: str, slug: str) -> str:
+    match = re.search(
+        rf'<a[^>]*href="{preview_url(slug)}"[^>]*>.*?</a>', content, re.DOTALL
+    )
+    assert match, f"the list must link the {slug} preview"
+    return match.group(0)
+
+
 def test_list(client) -> None:
     response = client.get(reverse("django_letter:list"))
     content = response.content.decode()
@@ -229,14 +242,35 @@ def test_list(client) -> None:
     assert content.index("invoiceemail") < content.index(
         "welcomeemail"
     )  # sorted by slug
-    for slug, name in [
-        ("invoiceemail", "InvoiceEmail"),
-        ("logoemail", "LogoEmail"),
-        ("remoteimagesemail", "RemoteImagesEmail"),
-        ("retinalogoemail", "RetinaLogoEmail"),
-        ("welcomeemail", "WelcomeEmail"),
+    for slug, name, template in [
+        ("invoiceemail", "InvoiceEmail", "testapp/invoice.html"),
+        ("logoemail", "LogoEmail", "testapp/logo.html"),
+        ("remoteimagesemail", "RemoteImagesEmail", "testapp/remote.html"),
+        ("retinalogoemail", "RetinaLogoEmail", "testapp/retina.html"),
+        ("welcomeemail", "WelcomeEmail", "testapp/welcome.html"),
     ]:
-        assert f'{preview_url(slug)}">{name}</a>' in content
+        item = list_item(content, slug)
+        # Each entry is a Basecoat item that shows where the class and its
+        # template live.
+        assert 'class="item"' in item
+        assert f"<h3>{name}</h3>" in item
+        assert "<code>tests.testapp.emails</code>" in item
+        assert f"<code>{template}</code>" in item
+
+
+def test_list_ships_the_basecoat_stylesheet(client) -> None:
+    content = client.get(reverse("django_letter:list")).content.decode()
+    assert 'href="/static/django_letter/basecoat.min.css"' in content
+    css = STYLESHEET.read_text()
+    assert ".item-group" in css
+    assert "basecoat-css@1.0.2" in css  # the vendored version of the banner
+
+
+def test_list_without_emails(client, monkeypatch) -> None:
+    monkeypatch.setattr(TemplateEmail, "get_email_classes", classmethod(lambda cls: {}))
+    content = client.get(reverse("django_letter:list")).content.decode()
+    assert 'class="empty"' in content
+    assert "No emails discovered yet" in content
 
 
 def test_preview(client) -> None:

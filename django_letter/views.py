@@ -78,6 +78,8 @@ class TemplateEmailListView(generic.View):
                 "emails": [
                     {
                         "name": email_class.__name__,
+                        "module": email_class.__module__,
+                        "template": email_class.template_name,
                         "url": reverse("django_letter:preview", kwargs={"slug": slug}),
                     }
                     for slug, email_class in sorted(

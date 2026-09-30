@@ -1,56 +1,142 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
     <title>Email previews</title>
+    {# BasecoatUI 1.0.2, vendored from basecoat-css. #}
+    <link rel="stylesheet" href="{% static 'django_letter/basecoat.min.css' %}">
     <style>
       :root {
         color-scheme: light dark;
       }
 
       body {
+        max-width: 48rem;
+        margin: 0 auto;
+        padding: 2rem 1rem 4rem;
+      }
+
+      .page-header {
+        margin-bottom: 1.5rem;
+      }
+
+      .page-header h1 {
         margin: 0;
-        padding: 24px;
-        background-color: #ffffff;
-        color: #111827;
-        font-family: system-ui, sans-serif;
+        font-weight: var(--font-weight-semibold);
+        font-size: 1.5rem;
       }
 
-      ul {
-        padding: 0;
-        list-style: none;
+      .page-header p {
+        margin: 0.25rem 0 0;
+        color: var(--color-muted-foreground);
+        font-size: var(--text-sm);
       }
 
-      a {
-        color: #1d4ed8;
+      code {
+        font-size: 0.9em;
+        font-family: var(--font-mono);
       }
 
-      @media (prefers-color-scheme: dark) {
-        body {
-          background-color: #0b1120;
-          color: #e5e7eb;
-        }
-
-        a {
-          color: #93c5fd;
-        }
+      /* The dashed frame of the empty state comes from a Tailwind utility that
+         this page has no build step for. */
+      .empty {
+        border: 1px dashed var(--color-border);
       }
     </style>
+    <script>
+      // Basecoat switches themes with the `dark` class, so follow the system
+      // scheme here before the first paint.
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
+      const applyScheme = () =>
+        document.documentElement.classList.toggle("dark", prefersDark.matches);
+      applyScheme();
+      prefersDark.addEventListener("change", applyScheme);
+    </script>
   </head>
   <body>
-    <h1>Email previews</h1>
+    <header class="page-header">
+      <h1>Email previews</h1>
+      {% if emails %}
+        <p>
+          {{ emails|length }} email{{ emails|length|pluralize }} discovered. Open one to see it in desktop and mobile
+          frames.
+        </p>
+      {% endif %}
+    </header>
     {% if emails %}
-      <ul>
+      <div class="item-group" role="list">
         {% for email in emails %}
-          <li><a href="{{ email.url }}">{{ email.name }}</a></li>
+          <a href="{{ email.url }}" class="item" data-variant="outline" role="listitem">
+            <figure aria-hidden="true">
+              <svg
+                class="lucide lucide-mail"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+              </svg>
+            </figure>
+            <section>
+              <h3>{{ email.name }}</h3>
+              <p><code>{{ email.module }}</code> · <code>{{ email.template }}</code></p>
+            </section>
+            <aside aria-hidden="true">
+              <svg
+                class="lucide lucide-chevron-right"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </aside>
+          </a>
         {% endfor %}
-      </ul>
+      </div>
     {% else %}
-      <p>
-        No emails discovered yet. Subclass <code>TemplateEmail</code> and put it in your app's
-        <code>emails</code> module.
-      </p>
+      <section class="empty">
+        <header>
+          <figure aria-hidden="true">
+            <svg
+              class="lucide lucide-mail"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+            </svg>
+          </figure>
+          <h3>No emails discovered yet</h3>
+          <p>
+            Subclass <code>TemplateEmail</code> and put it in your app's
+            <code>emails</code> module.
+          </p>
+        </header>
+      </section>
     {% endif %}
   </body>
 </html>
