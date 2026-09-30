@@ -18,12 +18,48 @@ function storedTheme() {
   }
 }
 
-/** Resolve the theme from storage, then the system preference. */
+/**
+ * Point the page and its Basecoat chrome at one theme.
+ *
+ * @param {string} theme - The theme to show.
+ */
+function applyChrome(theme) {
+  document.documentElement.dataset.theme = theme;
+  // Basecoat themes its chrome with the `dark` class.
+  document.documentElement.classList.toggle("dark", theme !== "light");
+}
+
+/**
+ * Resolve the theme from storage, then the system preference.
+ *
+ * The chrome is set here, before the first paint, so it never flashes the
+ * other theme; the frames follow once the page is ready.
+ */
 const stored = storedTheme();
 if (stored) {
-  document.documentElement.dataset.theme = stored;
+  applyChrome(stored);
 } else if (matchMedia("(prefers-color-scheme: dark)").matches) {
-  document.documentElement.dataset.theme = "invert";
+  applyChrome("invert");
+}
+
+/**
+ * Address the preview with tracking blocked or allowed.
+ *
+ * Both states live in the address, so a reload or a copy of the link keeps
+ * the downloads stopped or running.
+ *
+ * @param {string} current - The address of the open preview.
+ * @param {boolean} blocked - Whether the switch stops the downloads.
+ * @returns {string} The address to load next.
+ */
+function trackingUrl(current, blocked) {
+  const url = new URL(current);
+  if (blocked) {
+    url.searchParams.delete("load_images");
+  } else {
+    url.searchParams.set("load_images", "1");
+  }
+  return `${url.pathname}${url.search}`;
 }
 
 /**
@@ -92,7 +128,7 @@ function applyToFrame({ contentDocument: doc }, theme) {
 }
 
 function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme;
+  applyChrome(theme);
   for (const radio of document.querySelectorAll('input[name="theme"]')) {
     radio.checked = radio.value === theme;
   }
@@ -115,5 +151,9 @@ document.addEventListener("DOMContentLoaded", () => {
       applyToFrame(frame, document.documentElement.dataset.theme);
     });
   }
+  const tracking = document.getElementById("block-tracking");
+  tracking?.addEventListener("change", () => {
+    location.assign(trackingUrl(location.href, tracking.checked));
+  });
   applyTheme(document.documentElement.dataset.theme);
 });

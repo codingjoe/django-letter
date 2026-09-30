@@ -49,12 +49,13 @@ plain-text body from the same template.
    ]
    ```
 
-   While `DEBUG` is true, you can preview each email at `/emails/`:
+   While `DEBUG` is true, `/emails/` lists every discovered email with the
+   module of its class and its template, and previews each one:
 
    <picture>
      <source media="(prefers-color-scheme: dark)" srcset="https://github.com/codingjoe/django-letter/raw/main/docs/images/preview-dark.png">
      <source media="(prefers-color-scheme: light)" srcset="https://github.com/codingjoe/django-letter/raw/main/docs/images/preview-light.png">
-     <img alt="WelcomeEmail in the desktop and mobile frames of the preview page" src="https://github.com/codingjoe/django-letter/raw/main/docs/images/preview-light.png">
+     <img alt="WelcomeEmail in the desktop, mobile and plain-text frames of the preview page" src="https://github.com/codingjoe/django-letter/raw/main/docs/images/preview-light.png">
    </picture>
 
 ## Usage

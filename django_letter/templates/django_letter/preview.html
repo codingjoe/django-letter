@@ -6,29 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ email_name }}</title>
     <script type="module" src="{% static 'django_letter/preview.js' %}"></script>
+    {# BasecoatUI 1.0.2, vendored from basecoat-css. #}
+    <link rel="stylesheet" href="{% static 'django_letter/basecoat.min.css' %}">
     <style>
       :root {
         color-scheme: light;
-        --page: #ffffff;
-        --surface: #f3f4f6;
-        --text: #111827;
-        --border: #e5e7eb;
-        --link: #1d4ed8;
-        --active: #1d4ed8;
-        --active-text: #ffffff;
         --frame: #ffffff;
       }
 
-      html[data-theme='invert'],
-      html[data-theme='author'] {
+      html.dark {
         color-scheme: dark;
-        --page: #0b1120;
-        --surface: #1f2937;
-        --text: #e5e7eb;
-        --border: #334155;
-        --link: #93c5fd;
-        --active: #2563eb;
-        --active-text: #ffffff;
         --frame: #111827;
       }
 
@@ -40,42 +27,40 @@
       body {
         display: flex;
         flex-direction: column;
-        margin: 0;
-        background-color: var(--page);
-        color: var(--text);
-        font-family: system-ui, sans-serif;
       }
 
-      nav {
+      .preview-bar {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         padding: 12px 24px;
         gap: 12px;
       }
 
-      nav a {
-        color: var(--link);
+      .preview-bar .breadcrumb {
+        margin-right: auto;
       }
 
-      nav strong {
-        margin-right: auto;
+      /* A Basecoat field fills its form; this one hugs its switch. */
+      .preview-bar .field {
+        flex: none;
+        width: auto;
       }
 
       .modes {
         display: flex;
-        margin-right: 12px;
         padding: 2px;
         gap: 2px;
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        background-color: var(--surface);
-        font-size: 13px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        background-color: var(--color-muted);
+        font-size: var(--text-sm);
       }
 
       .modes > * {
         position: relative;
         padding: 4px 10px;
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         color: inherit;
         text-decoration: none;
         white-space: nowrap;
@@ -89,52 +74,14 @@
         opacity: 0;
       }
 
-      .modes label:has(:checked),
-      .modes a[aria-checked='true'] {
-        background-color: var(--active);
-        color: var(--active-text);
+      .modes label:has(:checked) {
+        background-color: var(--color-primary);
+        color: var(--color-primary-foreground);
       }
 
-      .modes label:has(:focus-visible),
-      .modes a:focus-visible {
-        outline: 2px solid var(--link);
+      .modes label:has(:focus-visible) {
+        outline: 2px solid var(--color-ring);
         outline-offset: 1px;
-      }
-
-      .switch {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-
-      .switch .knob {
-        position: relative;
-        width: 22px;
-        height: 12px;
-        border-radius: 6px;
-        background-color: var(--border);
-        transition: background-color 120ms ease;
-      }
-
-      .switch .knob::after {
-        position: absolute;
-        top: 2px;
-        left: 2px;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background-color: var(--text);
-        content: '';
-        transition: translate 120ms ease, background-color 120ms ease;
-      }
-
-      .switch[aria-checked='true'] .knob {
-        background-color: rgba(255, 255, 255, 0.45);
-      }
-
-      .switch[aria-checked='true'] .knob::after {
-        translate: 10px 0;
-        background-color: var(--active-text);
       }
 
       main {
@@ -147,8 +94,8 @@
 
       iframe {
         height: 100%;
-        border: 1px solid var(--border);
-        border-radius: 8px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
         background-color: var(--frame);
         color-scheme: light;
       }
@@ -165,15 +112,57 @@
         width: 100%;
       }
 
+      /* The phone and its plain-text twin share one column. */
+      .side {
+        display: flex;
+        flex: none;
+        flex-direction: column;
+        width: 375px;
+        min-height: 0;
+        gap: 24px;
+      }
+
       .mobile {
         flex: none;
-        width: 375px;
+        aspect-ratio: 375 / 812;
+        width: 100%;
+        /* A phone screen, never taller than the room the text frame needs. */
+        height: auto;
+        max-height: 60%;
+      }
+
+      .text {
+        flex: 1;
+        width: 100%;
+        min-height: 0;
       }
     </style>
   </head>
   <body>
-    <nav>
-      <strong>{{ email_name }}</strong>
+    <header class="preview-bar">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="{{ list_url }}">All emails</a></li>
+          <li aria-hidden="true">
+            <svg
+              data-rtl-flip
+              class="lucide lucide-chevron-right"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </li>
+          <li><span aria-current="page">{{ email_name }}</span></li>
+        </ol>
+      </nav>
       <div class="modes" role="radiogroup" aria-label="Preview theme">
         <label title="The message as it is sent.">
           <input type="radio" name="theme" value="light">
@@ -188,26 +177,42 @@
           Dark (Apple)
         </label>
       </div>
-      <div class="modes">
-        <a
-          class="switch"
-          href="{% if load_images %}{% querystring load_images=None %}{% else %}{% querystring load_images=1 %}{% endif %}"
+      <div role="group" class="field" data-orientation="horizontal">
+        <input
+          type="checkbox"
+          id="block-tracking"
           role="switch"
-          aria-checked="{{ load_images|yesno:'false,true' }}"
-          title="Stop every download and show only the pictures the message carries, the way clients stop tracking pixels. Turn it off to load every picture."
+          class="input"
+          {% if not load_images %}checked{% endif %}
         >
-          <span class="knob" aria-hidden="true"></span>
-          Block tracking
-        </a>
+        <label
+          for="block-tracking"
+          title="Stop every download and show only the pictures the message carries, the way clients stop tracking pixels. Turn it off to load every picture."
+        >Block tracking</label>
       </div>
-      <a href="{{ list_url }}">All emails</a>
-      <a href="{% querystring plain=1 %}" target="_blank">Plain text</a>
-      <a href="{% querystring raw=1 %}" target="_blank" rel="noopener">HTML</a>
-    </nav>
+    </header>
     <main>
       {# `allow-same-origin` lets the themes read the message, nothing more. #}
-      <iframe class="desktop" src="{% querystring raw=1 %}" sandbox="allow-same-origin"></iframe>
-      <iframe class="mobile" src="{% querystring raw=1 %}" sandbox="allow-same-origin"></iframe>
+      <iframe
+        class="desktop"
+        src="{% querystring raw=1 %}"
+        title="Desktop preview"
+        sandbox="allow-same-origin"
+      ></iframe>
+      <div class="side">
+        <iframe
+          class="mobile"
+          src="{% querystring raw=1 %}"
+          title="Mobile preview"
+          sandbox="allow-same-origin"
+        ></iframe>
+        <iframe
+          class="text"
+          src="{% querystring plain=1 %}"
+          title="Plain-text preview"
+          sandbox="allow-same-origin"
+        ></iframe>
+      </div>
     </main>
   </body>
 </html>
