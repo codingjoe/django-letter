@@ -154,18 +154,18 @@
       </div>
       <div class="modes" role="group" aria-label="Preview images">
         <a
-          href="{% querystring block_images=None %}"
-          title="Load every picture the message asks for."
-          {% if not block_images %}aria-current="true"{% endif %}
-        >
-          Load
-        </a>
-        <a
-          href="{% querystring block_images=1 %}"
+          href="{% querystring load_images=None %}"
           title="Stop every download and show only the pictures the message carries, the way clients stop tracking pixels."
-          {% if block_images %}aria-current="true"{% endif %}
+          {% if not load_images %}aria-current="true"{% endif %}
         >
           Block
+        </a>
+        <a
+          href="{% querystring load_images=1 %}"
+          title="Load every picture the message asks for."
+          {% if load_images %}aria-current="true"{% endif %}
+        >
+          Load
         </a>
       </div>
       <a href="{{ list_url }}">All emails</a>

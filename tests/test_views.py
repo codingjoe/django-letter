@@ -136,19 +136,19 @@ def test_preview_images_toggle(client) -> None:
     """The images toggle offers both modes and marks the current one."""
     content = preview_content(client)
     assert image_toggle(content) == {
-        "Load": ("?", True),
-        "Block": ("?block_images=1", False),
+        "Block": ("?", True),
+        "Load": ("?load_images=1", False),
     }
     assert content.count('src="?raw=1"') == 2
 
 
-def test_preview_images_toggle_blocks_the_frames(client) -> None:
-    content = preview_content(client, block_images=1)
+def test_preview_images_toggle_loads_the_frames(client) -> None:
+    content = preview_content(client, load_images=1)
     assert image_toggle(content) == {
-        "Load": ("?", False),
-        "Block": ("?block_images=1", True),
+        "Block": ("?", False),
+        "Load": ("?load_images=1", True),
     }
-    assert content.count('src="?block_images=1&amp;raw=1"') == 2
+    assert content.count('src="?load_images=1&amp;raw=1"') == 2
 
 
 def test_preview_invert_css() -> None:
@@ -241,11 +241,13 @@ def test_preview_raw(client) -> None:
 
 
 def test_preview_raw_points_pictures_at_the_static_url(client) -> None:
-    content = client.get(preview_url("logoemail"), {"raw": "1"}).content.decode()
+    """A reader who asks for the pictures gets the static URLs of the app."""
+    params = {"raw": "1", "load_images": "1"}
+    content = client.get(preview_url("logoemail"), params).content.decode()
     assert 'src="/static/testapp/logo.png"' in content
     assert "cid:" not in content
 
-    content = client.get(preview_url("retinalogoemail"), {"raw": "1"}).content.decode()
+    content = client.get(preview_url("retinalogoemail"), params).content.decode()
     assert 'src="/static/testapp/logo.png"' in content
     # `static()` percent-encodes the `@` of the retina name, so a picture that
     # had its shorter sibling replaced first would still carry a plain `@2x`.
@@ -255,9 +257,7 @@ def test_preview_raw_points_pictures_at_the_static_url(client) -> None:
 
 def test_preview_raw_blocks_every_download(client) -> None:
     """The blocked mode stops every download, the pictures of the app included."""
-    response = client.get(
-        preview_url("remoteimagesemail"), {"raw": "1", "block_images": "1"}
-    )
+    response = client.get(preview_url("remoteimagesemail"), {"raw": "1"})
     # No origin is allowed, so a `{% static %}` picture is a download like any other.
     assert response["Content-Security-Policy"] == "img-src data:"
     content = response.content.decode()
@@ -267,8 +267,10 @@ def test_preview_raw_blocks_every_download(client) -> None:
     assert 'src="https://placehold.co/480x160.png"' in content
 
 
-def test_preview_raw_loads_every_picture_by_default(client) -> None:
-    response = client.get(preview_url("remoteimagesemail"), {"raw": "1"})
+def test_preview_raw_loads_when_asked(client) -> None:
+    response = client.get(
+        preview_url("remoteimagesemail"), {"raw": "1", "load_images": "1"}
+    )
     assert "Content-Security-Policy" not in response
     assert 'src="/static/testapp/logo.png"' in response.content.decode()
     assert "data:image/png" not in response.content.decode()

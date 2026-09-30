@@ -32,9 +32,9 @@ class TemplateEmailPreviewView(generic.View):
     `?plain=1` and `?raw=1` return the plain-text and bare bodies. The frames
     load the raw body, so pictures show up there as plain static URLs, never as
     `cid:` addresses. `?lang=de` switches the language, and an unknown slug is a
-    404. `?block_images=1` sends the raw body with an `img-src` policy, so the
-    browser loads what the message carries inside and stops every download, the
-    pictures of the app itself included, the way clients stop tracking pixels.
+    404. The raw body blocks every download, the pictures of the app itself and
+    the ones the message carries aside, unless `?load_images=1` asks for them,
+    the way clients stop tracking pixels by default.
     """
 
     def get(self, request: HttpRequest, slug: str, *args, **kwargs) -> HttpResponse:
@@ -43,7 +43,8 @@ class TemplateEmailPreviewView(generic.View):
             raise Http404
 
         language = request.GET.get("lang")
-        block_images = bool(request.GET.get("block_images"))
+        # A reader sees the message the way a client shows it: without pictures.
+        load_images = bool(request.GET.get("load_images"))
         if request.GET.get("plain"):
             email = email_class.render_preview(request, language=language)
             return HttpResponse(email.body, content_type="text/plain; charset=utf-8")
@@ -53,10 +54,10 @@ class TemplateEmailPreviewView(generic.View):
             # One content ID can be a prefix of another. Replace the longest first.
             for name in sorted(email.attached_static, key=len, reverse=True):
                 image = email.attached_static[name]
-                address = data_url(image.path) if block_images else image.url
+                address = image.url if load_images else data_url(image.path)
                 html = html.replace(f"cid:{name}", address)
             response = HttpResponse(html, content_type="text/html; charset=utf-8")
-            if block_images:
+            if not load_images:
                 response["Content-Security-Policy"] = IMAGE_POLICY
             return response
         return render(
@@ -65,7 +66,7 @@ class TemplateEmailPreviewView(generic.View):
             {
                 "email_name": email_class.__name__,
                 "list_url": reverse("django_letter:list"),
-                "block_images": block_images,
+                "load_images": load_images,
             },
         )
 
