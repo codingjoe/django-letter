@@ -260,6 +260,7 @@ def test_preview_raw_blocks_pictures_of_other_hosts(client) -> None:
     assert response["Content-Security-Policy"] == "img-src 'self' data:"
     content = response.content.decode()
     assert 'src="/static/testapp/logo.png"' in content
+    assert 'src="https://placehold.co/480x160.png"' in content
     assert 'src="https://example.com/counter.gif"' in content
 
 

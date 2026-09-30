@@ -3,7 +3,8 @@
 
 {% block content %}
   <h1>News from the workshop</h1>
-  <p>The logo travels inside this message, the counter does not.</p>
+  <p>The logo travels inside this message. The banner and the counter do not.</p>
   <img src="{% attached_static 'testapp/logo.png' %}" alt="The django-letter logo">
+  <img src="https://placehold.co/480x160.png" alt="A banner another host serves" width="480" height="160">
   <img src="https://example.com/counter.gif" alt="" width="1" height="1">
 {% endblock content %}
