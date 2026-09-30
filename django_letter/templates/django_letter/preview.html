@@ -112,9 +112,29 @@
         width: 100%;
       }
 
+      /* The phone and its plain-text twin share one column. */
+      .side {
+        display: flex;
+        flex: none;
+        flex-direction: column;
+        width: 375px;
+        min-height: 0;
+        gap: 24px;
+      }
+
       .mobile {
         flex: none;
-        width: 375px;
+        aspect-ratio: 375 / 812;
+        width: 100%;
+        /* A phone screen, never taller than the room the text frame needs. */
+        height: auto;
+        max-height: 60%;
+      }
+
+      .text {
+        flex: 1;
+        width: 100%;
+        min-height: 0;
       }
     </style>
   </head>
@@ -170,15 +190,29 @@
           title="Stop every download and show only the pictures the message carries, the way clients stop tracking pixels. Turn it off to load every picture."
         >Block tracking</label>
       </div>
-      <a class="btn" data-variant="outline" data-size="sm" href="{% querystring plain=1 %}" target="_blank"
-      >Plain text</a>
-      <a class="btn" data-variant="outline" data-size="sm" href="{% querystring raw=1 %}" target="_blank" rel="noopener"
-      >HTML</a>
     </header>
     <main>
       {# `allow-same-origin` lets the themes read the message, nothing more. #}
-      <iframe class="desktop" src="{% querystring raw=1 %}" sandbox="allow-same-origin"></iframe>
-      <iframe class="mobile" src="{% querystring raw=1 %}" sandbox="allow-same-origin"></iframe>
+      <iframe
+        class="desktop"
+        src="{% querystring raw=1 %}"
+        title="Desktop preview"
+        sandbox="allow-same-origin"
+      ></iframe>
+      <div class="side">
+        <iframe
+          class="mobile"
+          src="{% querystring raw=1 %}"
+          title="Mobile preview"
+          sandbox="allow-same-origin"
+        ></iframe>
+        <iframe
+          class="text"
+          src="{% querystring plain=1 %}"
+          title="Plain-text preview"
+          sandbox="allow-same-origin"
+        ></iframe>
+      </div>
     </main>
   </body>
 </html>

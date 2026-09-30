@@ -168,13 +168,28 @@ def test_preview_theme_toggle(client) -> None:
 
 def test_preview_sandbox_attributes(client) -> None:
     sandbox = re.findall(r'<iframe\b[^>]*\bsandbox="([^"]*)"', preview_content(client))
-    assert sandbox == [EXPECTED_SANDBOX, EXPECTED_SANDBOX]
+    assert sandbox == [EXPECTED_SANDBOX] * 3
 
 
-def test_preview_html_link_has_no_opener(client) -> None:
-    link = re.search(r"<a\b[^>]*>HTML</a>", preview_content(client))
-    assert link, "the preview must offer one HTML link"
-    assert re.search(r'\brel="noopener"', link.group(0))
+def preview_frames(content: str) -> list[tuple[str, str, str]]:
+    """Return the class, the source and the title of every preview frame."""
+    return re.findall(
+        r'<iframe\b[^>]*\bclass="([^"]*)"[^>]*\bsrc="([^"]*)"[^>]*\btitle="([^"]*)"',
+        content,
+    )
+
+
+def test_preview_frames(client) -> None:
+    assert preview_frames(preview_content(client)) == [
+        ("desktop", "?raw=1", "Desktop preview"),
+        ("mobile", "?raw=1", "Mobile preview"),
+        ("text", "?plain=1", "Plain-text preview"),
+    ]
+
+
+def test_preview_offers_no_raw_link(client) -> None:
+    """Every body shows in a frame, so nothing opens a bare body in a tab."""
+    assert 'target="_blank"' not in preview_content(client)
 
 
 def test_preview_tracking_switch(client) -> None:
@@ -323,14 +338,15 @@ def test_preview(client) -> None:
     assert f'<a href="{reverse("django_letter:list")}">All emails</a>' in content
     assert '<span aria-current="page">WelcomeEmail</span>' in content
     assert 'src="?raw=1"' in content
-    assert 'href="?plain=1"' in content
+    assert 'src="?plain=1"' in content
 
 
 def test_preview_ships_the_basecoat_chrome(client) -> None:
     content = client.get(preview_url("welcomeemail")).content.decode()
     assert 'href="/static/django_letter/basecoat.min.css"' in content
-    assert 'class="btn"' in content
-    assert 'data-variant="outline"' in content
+    assert 'class="breadcrumb"' in content
+    assert 'class="field"' in content
+    assert 'role="switch"' in content
 
 
 def test_preview_raw(client) -> None:
@@ -406,7 +422,8 @@ def test_preview_language(client) -> None:
     assert '<html lang="de">' in raw.content.decode()
 
     page = client.get(url, {"lang": "de"})
-    assert 'href="?lang=de&amp;raw=1"' in page.content.decode()
+    assert 'src="?lang=de&amp;raw=1"' in page.content.decode()
+    assert 'src="?lang=de&amp;plain=1"' in page.content.decode()
 
 
 def test_preview_unknown_slug(client) -> None:
