@@ -13,13 +13,11 @@ from django.views.decorators.clickjacking import xframe_options_exempt
 
 from .message import TemplateEmail
 
-# The pictures the app serves itself are downloads too, so the policy names no
-# origin at all: only what the message carries inside stays visible.
+# No origin is trusted: a picture of the app is a download like any other.
 IMAGE_POLICY = "img-src data:"
 
 
 def data_url(path: Path) -> str:
-    """Return the picture as a `data:` address, the way a client carries it."""
     mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
     return f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode()}"
 
@@ -32,9 +30,7 @@ class TemplateEmailPreviewView(generic.View):
     `?plain=1` and `?raw=1` return the plain-text and bare bodies. The frames
     load the raw body, so pictures show up there as plain static URLs, never as
     `cid:` addresses. `?lang=de` switches the language, and an unknown slug is a
-    404. The raw body blocks every download, the pictures of the app itself and
-    the ones the message carries aside, unless `?load_images=1` asks for them,
-    the way clients stop tracking pixels by default.
+    404. The downloads start stopped, and `?load_images=1` allows them.
     """
 
     def get(self, request: HttpRequest, slug: str, *args, **kwargs) -> HttpResponse:
@@ -43,8 +39,7 @@ class TemplateEmailPreviewView(generic.View):
             raise Http404
 
         language = request.GET.get("lang")
-        # A reader sees the message the way a client shows it: without pictures.
-        load_images = bool(request.GET.get("load_images"))
+        load_images = bool(request.GET.get("load_images"))  # downloads start stopped
         if request.GET.get("plain"):
             email = email_class.render_preview(request, language=language)
             return HttpResponse(email.body, content_type="text/plain; charset=utf-8")

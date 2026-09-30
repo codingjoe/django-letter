@@ -88,7 +88,6 @@ def script_declaration(script: str, name: str) -> str:
 
 
 def image_switch(content: str) -> dict[str, str]:
-    """Return the target, the state and the label of the images switch."""
     match = re.search(r'<a[^>]*\brole="switch"[^>]*>.*?</a>', content, re.DOTALL)
     assert match, "the preview must offer one images switch"
     opening = match.group(0)[: match.group(0).index(">")]
@@ -135,7 +134,6 @@ def test_preview_sandbox_attributes(client) -> None:
 
 
 def test_preview_images_switch(client) -> None:
-    """One switch stops the tracking, and the preview starts with it on."""
     content = preview_content(client)
     assert image_switch(content) == {
         "href": "?load_images=1",
@@ -245,7 +243,6 @@ def test_preview_raw(client) -> None:
 
 
 def test_preview_raw_points_pictures_at_the_static_url(client) -> None:
-    """A reader who asks for the pictures gets the static URLs of the app."""
     params = {"raw": "1", "load_images": "1"}
     content = client.get(preview_url("logoemail"), params).content.decode()
     assert 'src="/static/testapp/logo.png"' in content
@@ -260,12 +257,11 @@ def test_preview_raw_points_pictures_at_the_static_url(client) -> None:
 
 
 def test_preview_raw_blocks_every_download(client) -> None:
-    """The blocked mode stops every download, the pictures of the app included."""
     response = client.get(preview_url("remoteimagesemail"), {"raw": "1"})
-    # No origin is allowed, so a `{% static %}` picture is a download like any other.
+    # A `{% static %}` picture is a download like any other, so no origin is allowed.
     assert response["Content-Security-Policy"] == "img-src data:"
     content = response.content.decode()
-    # The picture the message carries is embedded, the way a client embeds it.
+    # The carried picture travels inside, the way a client embeds it.
     assert 'src="data:image/png;base64,' in content
     assert 'src="http://testserver/static/testapp/logo.png"' in content
     assert 'src="https://placehold.co/480x160.png"' in content
