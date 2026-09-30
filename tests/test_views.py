@@ -461,9 +461,8 @@ def language_menu(content: str) -> dict[str, tuple[str, bool]]:
 
 def test_preview_language_switcher(client) -> None:
     content = preview_content(client)
-    assert 'src="?raw=1"' in content  # without a language in the address
+    assert 'src="?raw=1"' in content
 
-    # `LANGUAGE_CODE` is `en-us`, which the stock `LANGUAGES` names as `en`.
     assert language_trigger(content) == "English"
 
     menu = language_menu(content)
@@ -522,7 +521,7 @@ def test_preview_ships_the_basecoat_scripts(client) -> None:
     ]
     for name in ("basecoat.min.js", "command.min.js"):
         asset = (STATIC / name).read_text()
-        assert "basecoat-css@1.0.2" in asset  # the vendored version of the banner
+        assert "basecoat-css@1.0.2" in asset
 
 
 def test_preview_script_wires_the_language_palette() -> None:
