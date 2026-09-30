@@ -186,6 +186,8 @@ def test_list(client) -> None:
     )  # sorted by slug
     for slug, name in [
         ("invoiceemail", "InvoiceEmail"),
+        ("logoemail", "LogoEmail"),
+        ("retinalogoemail", "RetinaLogoEmail"),
         ("welcomeemail", "WelcomeEmail"),
     ]:
         assert f'{preview_url(slug)}">{name}</a>' in content
@@ -206,6 +208,19 @@ def test_preview_raw(client) -> None:
     assert response.status_code == 200
     assert response["Content-Type"] == "text/html; charset=utf-8"
     assert "background-color:#0867ec" in response.content.decode()
+
+
+def test_preview_raw_points_pictures_at_the_static_url(client) -> None:
+    content = client.get(preview_url("logoemail"), {"raw": "1"}).content.decode()
+    assert 'src="/static/testapp/logo.png"' in content
+    assert "cid:" not in content
+
+    content = client.get(preview_url("retinalogoemail"), {"raw": "1"}).content.decode()
+    assert 'src="/static/testapp/logo.png"' in content
+    # `static()` percent-encodes the `@` of the retina name, so a picture that
+    # had its shorter sibling replaced first would still carry a plain `@2x`.
+    assert 'src="/static/testapp/logo.png%402x.png"' in content
+    assert "cid:" not in content
 
 
 def test_preview_plain(client) -> None:

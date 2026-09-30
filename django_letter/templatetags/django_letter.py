@@ -1,7 +1,25 @@
 from django import template
+from django.templatetags.static import static
 from django.utils.html import format_html, format_html_join
 
+from ..message import TemplateEmail
+
 register = template.Library()
+
+
+@register.simple_tag
+def attached_static(name: str) -> str:
+    """
+    Return the address of a picture that travels inside the message.
+
+    `name` takes the same path as `{% static %}`. While a message renders, the
+    picture joins it and the tag returns a `cid:` address; a render outside a
+    message, such as a web view, gets the plain static URL. Asking for the same
+    file twice returns the same address; a missing file, or two files that
+    share a base name, raise `EmailImproperlyConfigured`.
+    """
+    email = TemplateEmail.current()
+    return email.attach_static(name) if email else static(name)
 
 
 @register.simple_block_tag

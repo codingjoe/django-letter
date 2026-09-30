@@ -15,8 +15,10 @@ class TemplateEmailPreviewView(generic.View):
     """
     Show one discovered subclass in desktop and mobile sized frames.
 
-    `?plain=1` and `?raw=1` return the plain-text and bare HTML bodies, `?lang=de`
-    switches the language, and an unknown slug is a 404.
+    `?plain=1` and `?raw=1` return the plain-text and bare bodies. The frames
+    load the raw body, so pictures show up there as plain static URLs, never as
+    `cid:` addresses. `?lang=de` switches the language, and an unknown slug is a
+    404.
     """
 
     def get(self, request: HttpRequest, slug: str, *args, **kwargs) -> HttpResponse:
@@ -30,7 +32,11 @@ class TemplateEmailPreviewView(generic.View):
             return HttpResponse(email.body, content_type="text/plain; charset=utf-8")
         if request.GET.get("raw"):
             email = email_class.render_preview(request, language=language)
-            return HttpResponse(email.html, content_type="text/html; charset=utf-8")
+            html = email.html
+            # A content ID may be a prefix of another one; replace the longest first.
+            for name in sorted(email.attached_static, key=len, reverse=True):
+                html = html.replace(f"cid:{name}", email.attached_static[name].url)
+            return HttpResponse(html, content_type="text/html; charset=utf-8")
         return render(
             request,
             "django_letter/preview.html",

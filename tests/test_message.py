@@ -1,7 +1,10 @@
 """Behaviour of `TemplateEmail` outside the preview views."""
 
 import re
+from email.message import Message, MIMEPart
+from pathlib import Path
 
+import django
 import pytest
 from django.contrib.auth.models import User
 from django.core.exceptions import ImproperlyConfigured
@@ -14,7 +17,18 @@ from django_letter.exceptions import (
     InvalidUserError,
     MissingEmailError,
 )
-from tests.testapp.emails import InvoiceEmail, WelcomeEmail
+from django_letter.message import StaticImage, _attached_static_part
+from tests.testapp.emails import (
+    InvoiceEmail,
+    LogoEmail,
+    RetinaLogoEmail,
+    WelcomeEmail,
+)
+
+STATIC_DIR = Path(__file__).parent / "testapp" / "static" / "testapp"
+LOGO = STATIC_DIR / "logo.png"
+LOGO_2X = STATIC_DIR / "logo.png@2x.png"
+LOGO_UNKNOWN = STATIC_DIR / "logo.unknown"
 
 
 @pytest.fixture
@@ -54,6 +68,21 @@ class GreetingEmail(TemplateEmail):
         return super().get_context_data() | {"name": "Ada"}
 
 
+def inline_part(message: Message, content_id: str) -> Message:
+    """Return the part that carries the inline picture `content_id`."""
+    return next(
+        part for part in message.walk() if part["Content-ID"] == f"<{content_id}>"
+    )
+
+
+def assert_inline_image(part: Message, content: bytes) -> None:
+    """Assert that `part` is the inline PNG picture `content`."""
+    assert part.get_content_type() == "image/png"
+    assert part["Content-Transfer-Encoding"] == "base64"
+    assert part["Content-Disposition"] == "inline"
+    assert part.get_payload(decode=True) == content
+
+
 def test_get_context_data_defaults_to_empty() -> None:
     assert TemplateEmail(language="en").get_context_data() == {}
 
@@ -77,6 +106,8 @@ def test_get_email_classes() -> None:
     assert TemplateEmail.get_email_classes() == {
         "welcomeemail": WelcomeEmail,
         "invoiceemail": InvoiceEmail,
+        "logoemail": LogoEmail,
+        "retinalogoemail": RetinaLogoEmail,
     }
 
 
@@ -170,6 +201,87 @@ def test_message_renders_once() -> None:
     email.message()
     assert len(email.alternatives) == 1
     assert len(email.attachments) == 2
+
+
+def test_attach_static_registers_the_picture() -> None:
+    email = LogoEmail(language="en")
+    assert email.attach_static("testapp/logo.png") == "cid:logo.png"
+    assert email.attach_static("testapp/logo.png") == "cid:logo.png"
+    assert email.attached_static == {
+        "logo.png": StaticImage(path=LOGO, url="/static/testapp/logo.png")
+    }
+
+
+def test_attach_static_rejects_two_files_with_one_name() -> None:
+    email = LogoEmail(language="en")
+    email.attach_static("testapp/logo.png")
+    with pytest.raises(
+        EmailImproperlyConfigured,
+        match="LogoEmail cannot attach two static files named logo.png.",
+    ):
+        email.attach_static("testapp/nested/logo.png")
+
+
+def test_attach_static_rejects_a_name_no_finder_resolves() -> None:
+    with pytest.raises(
+        EmailImproperlyConfigured,
+        match="LogoEmail cannot find the static file testapp/missing.png.",
+    ):
+        LogoEmail(language="en").attach_static("testapp/missing.png")
+
+
+def test_attach_static_rejects_a_directory() -> None:
+    """A finder happily resolves the static directory of an app itself."""
+    with pytest.raises(
+        EmailImproperlyConfigured,
+        match="LogoEmail cannot find the static file testapp.",
+    ):
+        LogoEmail(language="en").attach_static("testapp")
+
+
+def test_attached_static_part_without_a_known_extension() -> None:
+    """A name that `mimetypes` cannot place travels as a plain binary."""
+    part = _attached_static_part(LOGO_UNKNOWN, "logo.unknown")
+    assert part.get_content_type() == "application/octet-stream"
+    assert part.get_payload(decode=True) == LOGO_UNKNOWN.read_bytes()
+
+
+def test_render_attaches_the_picture_inline() -> None:
+    email = LogoEmail(language="en")
+    email.render()
+    assert 'src="cid:logo.png"' in email.html
+    assert_inline_image(inline_part(email.message(), "logo.png"), LOGO.read_bytes())
+
+
+def test_render_attaches_the_picture_in_both_densities() -> None:
+    email = RetinaLogoEmail(language="en")
+    email.render()
+    assert 'src="cid:logo.png"' in email.html
+    assert 'src="cid:logo.png@2x.png"' in email.html
+    message = email.message()
+    assert_inline_image(inline_part(message, "logo.png"), LOGO.read_bytes())
+    assert_inline_image(inline_part(message, "logo.png@2x.png"), LOGO_2X.read_bytes())
+
+
+def test_attached_static_part_on_django_before_6(monkeypatch) -> None:
+    """
+    Django 5.2 builds the part from `MIMEBase`.
+
+    It shares the content type, base64 encoding, inline disposition and content
+    ID with the modern shape, and also carries `MIME-Version`.
+    """
+    monkeypatch.setattr(django, "VERSION", (5, 2, 0, "final", 0))
+    part = _attached_static_part(LOGO, "logo.png")
+    assert not isinstance(part, MIMEPart)
+    assert part["Content-ID"] == "<logo.png>"
+    assert_inline_image(part, LOGO.read_bytes())
+
+
+def test_current_is_none_outside_a_render() -> None:
+    email = LogoEmail(language="en")
+    assert TemplateEmail.current() is None
+    email.render()
+    assert TemplateEmail.current() is None
 
 
 def test_render_preview_returns_rendered_email() -> None:
