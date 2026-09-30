@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ email_name }}</title>
+    <script src="{% static 'django_letter/basecoat.min.js' %}" defer></script>
+    <script src="{% static 'django_letter/command.min.js' %}" defer></script>
     <script type="module" src="{% static 'django_letter/preview.js' %}"></script>
     {# BasecoatUI 1.0.2, vendored from basecoat-css. #}
     <link rel="stylesheet" href="{% static 'django_letter/basecoat.min.css' %}">
@@ -45,6 +47,11 @@
       .preview-bar .field {
         flex: none;
         width: auto;
+      }
+
+      .language-code {
+        color: var(--color-muted-foreground);
+        font-size: var(--text-xs);
       }
 
       .modes {
@@ -163,6 +170,39 @@
           <li><span aria-current="page">{{ email_name }}</span></li>
         </ol>
       </nav>
+      {% if languages %}
+        <button
+          type="button"
+          id="language-trigger"
+          class="btn"
+          data-variant="outline"
+          data-size="sm"
+          aria-haspopup="dialog"
+          title="Render the message in another language."
+        >
+          <svg
+            class="lucide lucide-languages"
+            data-icon="inline-start"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="m5 8 6 6" />
+            <path d="m4 14 6-6 2-3" />
+            <path d="M2 5h12" />
+            <path d="M7 2h1" />
+            <path d="m22 22-5-10-5 10" />
+            <path d="M14 18h6" />
+          </svg>
+          {{ language_name }}
+        </button>
+      {% endif %}
       <div class="modes" role="radiogroup" aria-label="Preview theme">
         <label title="The message as it is sent.">
           <input type="radio" name="theme" value="light">
@@ -191,6 +231,84 @@
         >Block tracking</label>
       </div>
     </header>
+    {% if languages %}
+      <dialog
+        id="language-dialog"
+        class="command-dialog"
+        aria-label="Choose the language of the preview"
+      >
+        <div class="command">
+          <header>
+            <svg
+              class="lucide lucide-search"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              type="text"
+              id="language-search"
+              placeholder="Search languages…"
+              aria-label="Search languages"
+              autocomplete="off"
+              autocorrect="off"
+              spellcheck="false"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded="true"
+              aria-controls="language-menu"
+            >
+          </header>
+          <div
+            role="menu"
+            id="language-menu"
+            aria-orientation="vertical"
+            data-empty="No language found."
+          >
+            <div role="group" aria-labelledby="language-heading">
+              <span role="heading" id="language-heading">Language</span>
+              {% for code, name in languages.items %}
+                <a
+                  role="menuitem"
+                  href="{% querystring lang=code %}"
+                  data-filter="{{ name }}"
+                  data-keywords="{{ code }}"
+                  {% if code == language %}aria-selected="true"{% endif %}
+                >
+                  <span>{{ name }}</span>
+                  <code class="language-code">{{ code }}</code>
+                  <span data-indicator>
+                    <svg
+                      class="lucide lucide-check"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  </span>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </dialog>
+    {% endif %}
     <main>
       {# `allow-same-origin` lets the themes read the message, nothing more. #}
       <iframe

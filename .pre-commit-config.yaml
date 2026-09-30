@@ -59,6 +59,17 @@ repos:
     rev: 2025.22.2
     hooks:
       - id: esupgrade
+        exclude: ^django_letter/static/django_letter/[\w.-]+\.min\.js$
+  - repo: https://github.com/oxc-project/mirrors-oxlint
+    rev: v1.86.0
+    hooks:
+      - id: oxlint
+        exclude: ^django_letter/static/django_letter/[\w.-]+\.min\.js$
+  - repo: https://github.com/oxc-project/mirrors-oxfmt
+    rev: v0.71.0
+    hooks:
+      - id: oxfmt
+        exclude: ^django_letter/static/django_letter/[\w.-]+\.min\.js$
   - repo: local
     hooks:
       - id: svgo

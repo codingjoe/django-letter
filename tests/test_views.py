@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from django.conf import settings
 from django.urls import reverse
 
 import django_letter
@@ -434,6 +435,111 @@ def test_preview_language(client) -> None:
     page = client.get(url, {"lang": "de"})
     assert 'src="?lang=de&amp;raw=1"' in page.content.decode()
     assert 'src="?lang=de&amp;plain=1"' in page.content.decode()
+
+
+def language_trigger(content: str) -> str:
+    """Return the label of the button that opens the language palette."""
+    match = re.search(
+        r'<button\b[^>]*\bid="language-trigger"[^>]*>(.*?)</button>', content, re.DOTALL
+    )
+    assert match, "the preview must offer one language trigger"
+    return " ".join(re.sub(r"<[^>]+>", " ", match.group(1)).split())
+
+
+def language_menu(content: str) -> dict[str, tuple[str, bool]]:
+    """Return the name and the selection of every entry, keyed by its code."""
+    assert 'class="command-dialog"' in content, "the palette must be a command"
+    entries = {}
+    for tag, body in re.findall(
+        r'(<a\b[^>]*\brole="menuitem"[^>]*>)(.*?)</a>', content, re.DOTALL
+    ):
+        code = re.search(r'\blang=([^"&]+)"', tag).group(1)
+        name = re.search(r"<span>([^<]+)</span>", body).group(1)
+        entries[code] = (name, 'aria-selected="true"' in tag)
+    return entries
+
+
+def test_preview_language_switcher(client) -> None:
+    content = preview_content(client)
+    assert 'src="?raw=1"' in content
+
+    assert language_trigger(content) == "English"
+
+    menu = language_menu(content)
+    assert len(menu) == len(settings.LANGUAGES)
+    assert menu["de"] == ("German", False)
+    assert menu["en"] == ("English", True)
+    assert 'data-keywords="de"' in content
+    assert 'data-empty="No language found."' in content
+
+
+def test_preview_language_switcher_marks_the_language_in_the_address(
+    client, settings
+) -> None:
+    settings.LANGUAGES = [("en", "English"), ("de", "Deutsch")]
+    content = client.get(preview_url("welcomeemail"), {"lang": "de"}).content.decode()
+    assert language_trigger(content) == "Deutsch"
+    assert language_menu(content)["de"] == ("Deutsch", True)
+
+
+def test_preview_language_switcher_keeps_the_downloads_stopped(
+    client, settings
+) -> None:
+    """A language joins the choice of the switch, so it stays in the address."""
+    settings.LANGUAGES = [("en", "English"), ("de", "Deutsch")]
+    content = preview_content(client, load_images=1)
+    assert 'href="?load_images=1&amp;lang=de"' in content
+
+
+def test_preview_language_switcher_needs_a_choice(client, settings) -> None:
+    settings.LANGUAGES = [("en", "English")]
+    assert 'id="language-trigger"' not in preview_content(client)
+    assert 'id="language-dialog"' not in preview_content(client)
+
+    settings.LANGUAGES = [("en", "English"), ("de", "Deutsch")]
+    settings.USE_I18N = False
+    assert 'id="language-trigger"' not in preview_content(client)
+
+
+def test_preview_language_switcher_without_a_configured_language(
+    client, settings
+) -> None:
+    """A code outside `LANGUAGES` still renders, it just picks no entry."""
+    settings.LANGUAGES = [("en", "English"), ("de", "Deutsch")]
+    content = client.get(preview_url("welcomeemail"), {"lang": "xx"}).content.decode()
+    assert language_trigger(content) == "xx"
+    assert not any(selected for _, selected in language_menu(content).values())
+
+
+def test_preview_ships_the_basecoat_scripts(client) -> None:
+    content = preview_content(client)
+    scripts = re.findall(r'<script[^>]*\bsrc="([^"]+)"', content)
+    assert scripts == [
+        "/static/django_letter/basecoat.min.js",
+        "/static/django_letter/command.min.js",
+        "/static/django_letter/preview.js",
+    ]
+    for name in ("basecoat.min.js", "command.min.js"):
+        asset = (STATIC / name).read_text()
+        assert "basecoat-css@1.0.2" in asset
+
+
+def test_preview_script_wires_the_language_palette() -> None:
+    declaration = script_declaration(preview_script(), "wireLanguagePalette")
+    assert "dialog.showModal()" in declaration
+    assert "dialog.close()" in declaration
+
+
+@needs_node
+def test_preview_vendored_scripts_parse() -> None:
+    for name in ("basecoat.min.js", "command.min.js"):
+        result = subprocess.run(
+            [NODE, "--check", STATIC / name],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, result.stderr
 
 
 def test_preview_unknown_slug(client) -> None:

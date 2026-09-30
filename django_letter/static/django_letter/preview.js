@@ -137,6 +137,18 @@ function applyTheme(theme) {
   }
 }
 
+function wireLanguagePalette() {
+  const trigger = document.getElementById("language-trigger");
+  const dialog = document.getElementById("language-dialog");
+  if (!trigger || !dialog) return;
+  trigger.addEventListener("click", () => {
+    if (!dialog.open) dialog.showModal();
+  });
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   for (const radio of document.querySelectorAll('input[name="theme"]')) {
     radio.addEventListener("change", () => {
@@ -155,5 +167,6 @@ document.addEventListener("DOMContentLoaded", () => {
   tracking?.addEventListener("change", () => {
     location.assign(trackingUrl(location.href, tracking.checked));
   });
+  wireLanguagePalette();
   applyTheme(document.documentElement.dataset.theme);
 });
