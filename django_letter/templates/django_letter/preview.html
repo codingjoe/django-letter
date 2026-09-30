@@ -193,11 +193,11 @@
           class="switch"
           href="{% if load_images %}{% querystring load_images=None %}{% else %}{% querystring load_images=1 %}{% endif %}"
           role="switch"
-          aria-checked="{{ load_images|yesno:'true,false' }}"
-          title="Download the pictures the message asks for. Without it, only the pictures the message carries stay visible."
+          aria-checked="{{ load_images|yesno:'false,true' }}"
+          title="Stop every download and show only the pictures the message carries, the way clients stop tracking pixels. Turn it off to load every picture."
         >
           <span class="knob" aria-hidden="true"></span>
-          Load images
+          Block tracking
         </a>
       </div>
       <a href="{{ list_url }}">All emails</a>

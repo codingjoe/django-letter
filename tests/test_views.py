@@ -135,22 +135,22 @@ def test_preview_sandbox_attributes(client) -> None:
 
 
 def test_preview_images_switch(client) -> None:
-    """One switch turns the downloads on, and the preview starts without them."""
+    """One switch stops the tracking, and the preview starts with it on."""
     content = preview_content(client)
     assert image_switch(content) == {
         "href": "?load_images=1",
-        "checked": "false",
-        "label": "Load images",
+        "checked": "true",
+        "label": "Block tracking",
     }
     assert content.count('src="?raw=1"') == 2
 
 
-def test_preview_images_switch_on_the_frames(client) -> None:
+def test_preview_images_switch_off_loads_the_pictures(client) -> None:
     content = preview_content(client, load_images=1)
     assert image_switch(content) == {
         "href": "?",
-        "checked": "true",
-        "label": "Load images",
+        "checked": "false",
+        "label": "Block tracking",
     }
     assert content.count('src="?load_images=1&amp;raw=1"') == 2
 
