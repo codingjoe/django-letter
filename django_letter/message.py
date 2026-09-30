@@ -118,7 +118,7 @@ class TemplateEmail(EmailMultiAlternatives):
 
         The full name becomes the display name, and the user joins the template
         context. Pass the values of the subclass and `language` as keyword
-        arguments; `to=` and `extra_context` are set here.
+        arguments. The `to=` and `extra_context` values are set here.
 
         Raises:
             InactiveUserError: If the recipient is deactivated.
@@ -229,9 +229,9 @@ class TemplateEmail(EmailMultiAlternatives):
         """
         Register the file that the finders resolve for `name` on this message.
 
-        Returns the `cid:` address for the body, whose content ID is the base
-        name of the path, and records the file and its URL in `attached_static`.
-        Asking for the same file again returns the same address.
+        The content ID is the base name of the path, so the body gets
+        `cid:<base name>`. The file and its URL go into `attached_static`, and
+        asking again for the same file returns the same address.
 
         Raises:
             EmailImproperlyConfigured: If the file is nowhere to be found, or

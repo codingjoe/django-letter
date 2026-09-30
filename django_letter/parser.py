@@ -51,7 +51,7 @@ class HTML2TextParser(HTMLParser):
     Flatten markup into a plain-text body the way Gmail does.
 
     Links keep their target in angle brackets, images their alt text, and
-    emphasis asterisks; unclosed elements and stray end tags are tolerated.
+    emphasis asterisks. Unclosed elements and stray end tags are tolerated.
     """
 
     DOUBLE_NEWLINE = re.compile(r"\n{3,}")  # 3 or more newlines

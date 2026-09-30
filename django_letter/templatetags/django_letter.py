@@ -13,7 +13,8 @@ def attached_static(context: template.Context, name: str) -> str:
     Return the address of a picture that travels inside the message.
 
     Takes the path `{% static %}` takes. A picture asked for while a message
-    renders joins that message; anywhere else the plain static URL comes back.
+    renders joins that message. Anywhere else, the tag returns the plain static
+    URL.
     """
     if email := context.get(EMAIL_CONTEXT_KEY):
         return email.attach_static(name)

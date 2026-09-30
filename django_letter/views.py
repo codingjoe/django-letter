@@ -33,7 +33,7 @@ class TemplateEmailPreviewView(generic.View):
         if request.GET.get("raw"):
             email = email_class.render_preview(request, language=language)
             html = email.html
-            # A content ID may be a prefix of another one; replace the longest first.
+            # One content ID can be a prefix of another. Replace the longest first.
             for name in sorted(email.attached_static, key=len, reverse=True):
                 html = html.replace(f"cid:{name}", email.attached_static[name].url)
             return HttpResponse(html, content_type="text/html; charset=utf-8")
