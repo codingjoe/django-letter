@@ -61,3 +61,11 @@ class RetinaLogoEmail(TemplateEmail):
     template_name = "testapp/retina.html"
     subject = _("A sharper logo")
     preheader = _("Both sizes travel inside the message.")
+
+
+class RemoteImagesEmail(TemplateEmail):
+    """Show which pictures of a message need a download and which do not."""
+
+    template_name = "testapp/remote.html"
+    subject = _("News from the workshop")
+    preheader = _("Our logo needs no download.")

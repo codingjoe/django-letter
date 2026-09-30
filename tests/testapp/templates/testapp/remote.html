@@ -1,0 +1,10 @@
+{% extends "django_letter/base.html" %}
+{% load django_letter static %}
+
+{% block content %}
+  <h1>News from the workshop</h1>
+  <p>The logo travels inside this message. The other pictures do not.</p>
+  <img src="{% attached_static 'testapp/logo.png' %}" alt="The django-letter logo, carried by the message">
+  <img src="{% static 'testapp/logo.png' %}" alt="The same logo, served by the app" width="32" height="32">
+  <img src="https://placehold.co/480x160.png" alt="A banner a CDN serves" width="480" height="160">
+{% endblock content %}

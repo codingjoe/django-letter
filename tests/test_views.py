@@ -46,8 +46,8 @@ def preview_url(slug: str) -> str:
     return reverse("django_letter:preview", kwargs={"slug": slug})
 
 
-def preview_content(client) -> str:
-    return client.get(preview_url("welcomeemail")).content.decode()
+def preview_content(client, **params) -> str:
+    return client.get(preview_url("welcomeemail"), params).content.decode()
 
 
 def preview_script() -> str:
@@ -87,6 +87,17 @@ def script_declaration(script: str, name: str) -> str:
     pytest.fail(f"{name} is unterminated")
 
 
+def image_switch(content: str) -> dict[str, str]:
+    match = re.search(r'<a[^>]*\brole="switch"[^>]*>.*?</a>', content, re.DOTALL)
+    assert match, "the preview must offer one images switch"
+    opening = match.group(0)[: match.group(0).index(">")]
+    return {
+        "href": re.search(r'href="([^"]*)"', opening).group(1),
+        "checked": re.search(r'aria-checked="([^"]*)"', opening).group(1),
+        "label": " ".join(re.sub(r"<[^>]*>", " ", match.group(0)).split()),
+    }
+
+
 def node_json(program: str) -> object:
     result = subprocess.run(
         [NODE, "-e", program], capture_output=True, text=True, check=False
@@ -120,6 +131,26 @@ def test_preview_theme_toggle(client) -> None:
 def test_preview_sandbox_attributes(client) -> None:
     sandbox = re.findall(r'<iframe\b[^>]*\bsandbox="([^"]*)"', preview_content(client))
     assert sandbox == [EXPECTED_SANDBOX, EXPECTED_SANDBOX]
+
+
+def test_preview_images_switch(client) -> None:
+    content = preview_content(client)
+    assert image_switch(content) == {
+        "href": "?load_images=1",
+        "checked": "true",
+        "label": "Block tracking",
+    }
+    assert content.count('src="?raw=1"') == 2
+
+
+def test_preview_images_switch_off_loads_the_pictures(client) -> None:
+    content = preview_content(client, load_images=1)
+    assert image_switch(content) == {
+        "href": "?",
+        "checked": "false",
+        "label": "Block tracking",
+    }
+    assert content.count('src="?load_images=1&amp;raw=1"') == 2
 
 
 def test_preview_invert_css() -> None:
@@ -187,6 +218,7 @@ def test_list(client) -> None:
     for slug, name in [
         ("invoiceemail", "InvoiceEmail"),
         ("logoemail", "LogoEmail"),
+        ("remoteimagesemail", "RemoteImagesEmail"),
         ("retinalogoemail", "RetinaLogoEmail"),
         ("welcomeemail", "WelcomeEmail"),
     ]:
@@ -211,16 +243,37 @@ def test_preview_raw(client) -> None:
 
 
 def test_preview_raw_points_pictures_at_the_static_url(client) -> None:
-    content = client.get(preview_url("logoemail"), {"raw": "1"}).content.decode()
+    params = {"raw": "1", "load_images": "1"}
+    content = client.get(preview_url("logoemail"), params).content.decode()
     assert 'src="/static/testapp/logo.png"' in content
     assert "cid:" not in content
 
-    content = client.get(preview_url("retinalogoemail"), {"raw": "1"}).content.decode()
+    content = client.get(preview_url("retinalogoemail"), params).content.decode()
     assert 'src="/static/testapp/logo.png"' in content
     # `static()` percent-encodes the `@` of the retina name, so a picture that
     # had its shorter sibling replaced first would still carry a plain `@2x`.
     assert 'src="/static/testapp/logo.png%402x.png"' in content
     assert "cid:" not in content
+
+
+def test_preview_raw_blocks_every_download(client) -> None:
+    response = client.get(preview_url("remoteimagesemail"), {"raw": "1"})
+    # A `{% static %}` picture is a download like any other, so no origin is allowed.
+    assert response["Content-Security-Policy"] == "img-src data:"
+    content = response.content.decode()
+    # The carried picture travels inside, the way a client embeds it.
+    assert 'src="data:image/png;base64,' in content
+    assert 'src="http://testserver/static/testapp/logo.png"' in content
+    assert 'src="https://placehold.co/480x160.png"' in content
+
+
+def test_preview_raw_loads_when_asked(client) -> None:
+    response = client.get(
+        preview_url("remoteimagesemail"), {"raw": "1", "load_images": "1"}
+    )
+    assert "Content-Security-Policy" not in response
+    assert 'src="/static/testapp/logo.png"' in response.content.decode()
+    assert "data:image/png" not in response.content.decode()
 
 
 def test_preview_plain(client) -> None:

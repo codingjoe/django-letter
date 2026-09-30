@@ -61,7 +61,7 @@
         margin-right: auto;
       }
 
-      .themes {
+      .modes {
         display: flex;
         margin-right: 12px;
         padding: 2px;
@@ -72,29 +72,69 @@
         font-size: 13px;
       }
 
-      .themes label {
+      .modes > * {
         position: relative;
         padding: 4px 10px;
         border-radius: 4px;
+        color: inherit;
+        text-decoration: none;
         white-space: nowrap;
         cursor: pointer;
       }
 
-      .themes input {
+      .modes input {
         position: absolute;
         width: 1px;
         height: 1px;
         opacity: 0;
       }
 
-      .themes label:has(:checked) {
+      .modes label:has(:checked),
+      .modes a[aria-checked='true'] {
         background-color: var(--active);
         color: var(--active-text);
       }
 
-      .themes label:has(:focus-visible) {
+      .modes label:has(:focus-visible),
+      .modes a:focus-visible {
         outline: 2px solid var(--link);
         outline-offset: 1px;
+      }
+
+      .switch {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .switch .knob {
+        position: relative;
+        width: 22px;
+        height: 12px;
+        border-radius: 6px;
+        background-color: var(--border);
+        transition: background-color 120ms ease;
+      }
+
+      .switch .knob::after {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: var(--text);
+        content: '';
+        transition: translate 120ms ease, background-color 120ms ease;
+      }
+
+      .switch[aria-checked='true'] .knob {
+        background-color: rgba(255, 255, 255, 0.45);
+      }
+
+      .switch[aria-checked='true'] .knob::after {
+        translate: 10px 0;
+        background-color: var(--active-text);
       }
 
       main {
@@ -134,7 +174,7 @@
   <body>
     <nav>
       <strong>{{ email_name }}</strong>
-      <div class="themes" role="radiogroup" aria-label="Preview theme">
+      <div class="modes" role="radiogroup" aria-label="Preview theme">
         <label title="The message as it is sent.">
           <input type="radio" name="theme" value="light">
           Light
@@ -147,6 +187,18 @@
           <input type="radio" name="theme" value="author">
           Dark (Apple)
         </label>
+      </div>
+      <div class="modes">
+        <a
+          class="switch"
+          href="{% if load_images %}{% querystring load_images=None %}{% else %}{% querystring load_images=1 %}{% endif %}"
+          role="switch"
+          aria-checked="{{ load_images|yesno:'false,true' }}"
+          title="Stop every download and show only the pictures the message carries, the way clients stop tracking pixels. Turn it off to load every picture."
+        >
+          <span class="knob" aria-hidden="true"></span>
+          Block tracking
+        </a>
       </div>
       <a href="{{ list_url }}">All emails</a>
       <a href="{% querystring plain=1 %}" target="_blank">Plain text</a>
