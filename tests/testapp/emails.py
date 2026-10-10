@@ -1,7 +1,5 @@
 """Example emails that the preview pages list and the test suite pins."""
 
-from __future__ import annotations
-
 from collections.abc import Iterator
 
 from django.utils.translation import gettext_lazy as _
