@@ -59,25 +59,24 @@ write_to = "django_letter/_version.py"
 src = [ "django_letter", "tests" ]
 [tool.ruff.lint]
 extend-select = [
-  "C90",  # mccabe
-  "D",    # pydocstyle
-  "D213", # multi-line docstring summary starts on the second line
-  "DJ",   # pylint-django
-  "E",    # pycodestyle errors
-  "G",    # flake8-logging-format
-  "N",    # pep8-naming
-  "PERF", # Perflint
-  "PT",   # flake8-pytest-style
-  "PTH",  # flake8-use-pathlib
-  "RET",  # flake8-return
-  "SIM",  # flake8-simplify
-  "SLOT", # flake8-slots
-  "T20",  # flake8-print
-  "TRY",  # tryceratops
-  "UP",   # pyupgrade
-  "W",    # pycodestyle warnings
+  "C90",
+  "D",
+  "DJ",
+  "E",
+  "G",
+  "N",
+  "PERF",
+  "PT",
+  "PTH",
+  "RET",
+  "SIM",
+  "SLOT",
+  "T20",
+  "TRY",
+  "UP",
+  "W",
 ]
-ignore = [ "D1", "D203", "E501", "RUF01" ]
+ignore = [ "D1", "D203", "D212", "E501", "RUF01" ]
 isort.combine-as-imports = true
 isort.force-wrap-aliases = true
 isort.known-first-party = [ "django_letter", "tests" ]
