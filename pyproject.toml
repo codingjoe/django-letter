@@ -61,6 +61,7 @@ src = [ "django_letter", "tests" ]
 extend-select = [
   "C90",
   "D",
+  "D213",
   "DJ",
   "E",
   "G",
