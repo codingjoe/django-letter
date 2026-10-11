@@ -70,6 +70,7 @@ extend-select = [
   "PT",
   "PTH",
   "RET",
+  "S",
   "SIM",
   "SLOT",
   "T20",
