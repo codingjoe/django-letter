@@ -56,7 +56,7 @@ repos:
     hooks:
       - id: yamlfmt
   - repo: https://github.com/codingjoe/esupgrade
-    rev: 2026.1.0
+    rev: 2026.1.2
     hooks:
       - id: esupgrade
         exclude: ^django_letter/static/django_letter/[\w.-]+\.min\.js$
