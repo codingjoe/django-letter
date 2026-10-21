@@ -193,24 +193,24 @@ class TemplateEmail(EmailMultiAlternatives):
         A message with a `to` address gets a link for the first one. A message
         with none returns `None`.
         """
-        if not (notification := self.notification):
-            return None
-        try:
-            _, address = parseaddr(next(iter(self.to)))
-        except StopIteration:
-            return None
-        if not address:
-            return None
-        return urljoin(
-            self.get_base_url(),
-            reverse(
-                "django_letter_notifications:unsubscribe",
-                kwargs={
-                    "token": signer.sign(b64_encode(hash_email(address)).decode()),
-                    "slug": notification.slug,
-                },
-            ),
-        )
+        if notification := self.notification:
+            try:
+                _, address = parseaddr(next(iter(self.to)))
+            except StopIteration:
+                return None
+            if not address:
+                return None
+            return urljoin(
+                self.get_base_url(),
+                reverse(
+                    "django_letter_notifications:unsubscribe",
+                    kwargs={
+                        "token": signer.sign(b64_encode(hash_email(address)).decode()),
+                        "slug": notification.slug,
+                    },
+                ),
+            )
+        return None
 
     def render_html(self, **context) -> str:
         """
