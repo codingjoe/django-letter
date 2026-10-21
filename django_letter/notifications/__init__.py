@@ -69,8 +69,7 @@ class Notification:
             return email_class
         raise NotificationImproperlyConfigured(
             self,
-            f"Notification {self.slug!r} requires"
-            " 'django_letter.notifications' in INSTALLED_APPS.",
+            "'django_letter.notifications' must be in INSTALLED_APPS.",
         )
 
 
