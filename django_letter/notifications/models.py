@@ -32,7 +32,7 @@ class NotificationPreferenceQuerySet(models.QuerySet):
 class NotificationPreference(models.Model):
     """Store one recipient's override for one notification."""
 
-    email_hash = models.BinaryField(max_length=32)
+    email_hash = models.BinaryField(max_length=32, editable=False)
     slug = models.SlugField(max_length=100)
     enabled = models.BooleanField()
     updated_at = models.DateTimeField(auto_now=True)
