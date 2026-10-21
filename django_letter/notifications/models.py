@@ -15,12 +15,6 @@ class NotificationPreferenceQuerySet(models.QuerySet):
         except self.model.DoesNotExist:
             return notification.default
 
-    def set_enabled(
-        self, notification: Notification, email: str, enabled: bool
-    ) -> None:
-        """Turn the notification on or off for an address."""
-        self.set_enabled_hash(notification, hash_email(email), enabled)
-
     def set_enabled_hash(
         self, notification: Notification, email_hash: bytes, enabled: bool
     ) -> None:

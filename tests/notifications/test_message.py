@@ -172,7 +172,9 @@ def test_send__keeps_the_display_name(mailoutbox) -> None:
 
 
 def test_send__skips_an_opted_out_recipient(mailoutbox) -> None:
-    NotificationPreference.objects.set_enabled(weekly_digest, EMAIL, False)
+    NotificationPreference.objects.set_enabled_hash(
+        weekly_digest, hash_email(EMAIL), False
+    )
     email = WeeklyDigestEmail(language="en", cc=[EMAIL])
     assert email.send() == 0
     assert mailoutbox == []

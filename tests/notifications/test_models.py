@@ -42,13 +42,6 @@ def test_is_enabled__honours_a_disabled_default() -> None:
     assert NotificationPreference.objects.is_enabled(notification, EMAIL) is True
 
 
-def test_set_enabled__hashes_the_address() -> None:
-    NotificationPreference.objects.set_enabled(
-        weekly_digest, " Ada@Example.COM ", False
-    )
-    assert NotificationPreference.objects.get(**PREFERENCE).enabled is False
-
-
 def test_set_enabled_hash__stores_an_override_and_removes_the_default() -> None:
     digest = hash_email(EMAIL)
     NotificationPreference.objects.set_enabled_hash(weekly_digest, digest, False)
