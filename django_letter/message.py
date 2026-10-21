@@ -121,10 +121,6 @@ class TemplateEmail(EmailMultiAlternatives):
 
         The full name becomes the display name, and the user joins the
         template context.
-
-        Raises:
-            InactiveUserError: If the recipient is deactivated.
-            MissingEmailError: If the recipient has no email address.
         """
         if email := getattr(user, user.EMAIL_FIELD):
             if user.is_active:
@@ -146,12 +142,7 @@ class TemplateEmail(EmailMultiAlternatives):
         return super().message(**kwargs)
 
     def get_template(self) -> str:
-        """
-        Return the configured markup.
-
-        Raises:
-            EmailImproperlyConfigured: If the class has no template.
-        """
+        """Return the configured markup."""
         if not self.template_name:
             raise EmailImproperlyConfigured(type(self), "is missing a template")
         return self.template_name
@@ -161,12 +152,7 @@ class TemplateEmail(EmailMultiAlternatives):
         return {**self.extra_context}
 
     def get_subject(self, **context) -> str:
-        """
-        Interpolate the `%(name)s` placeholders of the configured line.
-
-        Raises:
-            EmailImproperlyConfigured: If the class has no subject.
-        """
+        """Interpolate the `%(name)s` placeholders of the configured line."""
         if not self.subject:
             raise EmailImproperlyConfigured(type(self), "is missing a subject")
         return self.subject % context
@@ -184,9 +170,6 @@ class TemplateEmail(EmailMultiAlternatives):
         Return the base URL for relative links and images.
 
         Uses `base_url`, then the first usable `ALLOWED_HOSTS` entry.
-
-        Raises:
-            EmailImproperlyConfigured: If no base URL can be built.
         """
         if self.base_url:
             return self.base_url
@@ -220,10 +203,6 @@ class TemplateEmail(EmailMultiAlternatives):
 
         A message with one distinct recipient gets a link. A message with
         none returns `None`.
-
-        Raises:
-            EmailImproperlyConfigured: If the message names more than one
-                distinct recipient.
         """
         if (notification := self.notification) and (
             address := self._notification_address()
@@ -246,10 +225,6 @@ class TemplateEmail(EmailMultiAlternatives):
 
         Adds `subject`, `preheader`, `notification`, and, for one distinct
         recipient, `unsubscribe_url`.
-
-        Raises:
-            EmailImproperlyConfigured: If the message names more than one
-                distinct recipient.
         """
         with translation.override(self.language):
             self.subject = str(self.get_subject(**context))
@@ -280,13 +255,7 @@ class TemplateEmail(EmailMultiAlternatives):
         yield from ()
 
     def attach_static(self, name: str) -> str:
-        """
-        Attach a static file and return its `cid:` URL.
-
-        Raises:
-            EmailImproperlyConfigured: If the file is missing or two files
-                share a base name.
-        """
+        """Attach a static file and return its `cid:` URL."""
         if not (found := finders.find(name)) or not Path(found).is_file():
             raise EmailImproperlyConfigured(
                 type(self), f"cannot find the static file {name}"
@@ -301,13 +270,7 @@ class TemplateEmail(EmailMultiAlternatives):
         return f"cid:{content_id}"
 
     def render(self, **context: typing.Any) -> None:
-        """
-        Render the bodies and attach the files once.
-
-        Raises:
-            EmailImproperlyConfigured: If the template, subject, language, or
-                notification links are misconfigured.
-        """
+        """Render the bodies and attach the files once."""
         if self.html is None:
             self.html = self.render_html(**(self.get_context_data() | context))
             self.body = self.render_body(self.html)
