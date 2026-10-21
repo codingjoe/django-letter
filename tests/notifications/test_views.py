@@ -1,11 +1,12 @@
 import pytest
 from django.contrib.auth.models import User
 from django.core.signing import b64_encode
-from django.test import Client
+from django.test import Client, RequestFactory
 from django.urls import reverse
 
 from django_letter.notifications import hash_email, signer
 from django_letter.notifications.models import NotificationPreference
+from django_letter.notifications.views import NotificationSettingsView
 from tests.testapp.emails import weekly_digest
 
 pytestmark = pytest.mark.django_db
@@ -53,6 +54,16 @@ def test_notification_settings_view__saves_preferences(client, user) -> None:
     assert response.status_code == 302
     assert response.url == settings_path()
     assert NotificationPreference.objects.get(**PREFERENCE).enabled is False
+
+
+def test_notification_settings_view__uses_the_user_email_field() -> None:
+    request = RequestFactory().get("/")
+    request.user = type(
+        "User", (), {"EMAIL_FIELD": "email_address", "email_address": EMAIL}
+    )()
+    view = NotificationSettingsView()
+    view.request = request
+    assert view.get_form_kwargs()["email"] == EMAIL
 
 
 def test_notification_unsubscribe_view__get_disables_the_notification(client) -> None:

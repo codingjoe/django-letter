@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 from django.core.checks import CheckMessage, Error, register
-from django.template import TemplateDoesNotExist
+from django.template import TemplateDoesNotExist, TemplateSyntaxError
 from django.template.loader import get_template
 from django.urls import NoReverseMatch, reverse
 
@@ -34,11 +34,11 @@ def check_settings_template(
     template_name = NotificationSettingsView.template_name
     try:
         get_template(template_name)
-    except TemplateDoesNotExist:
+    except TemplateDoesNotExist, TemplateSyntaxError:
         return [
             Error(
-                "The notification settings template is missing.",
-                hint=f"Add {template_name!r} to your templates.",
+                "The notification settings template cannot be loaded.",
+                hint=f"Add or correct {template_name!r}.",
                 id="django_letter.notifications.E002",
             )
         ]

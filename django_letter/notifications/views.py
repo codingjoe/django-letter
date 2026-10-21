@@ -25,7 +25,10 @@ class NotificationSettingsView(LoginRequiredMixin, generic.FormView):
 
     def get_form_kwargs(self) -> dict[str, typing.Any]:
         kwargs = super().get_form_kwargs()
-        kwargs["email"] = getattr(self.request.user, AbstractUser.EMAIL_FIELD)
+        email_field = getattr(
+            self.request.user, "EMAIL_FIELD", AbstractUser.EMAIL_FIELD
+        )
+        kwargs["email"] = getattr(self.request.user, email_field, "")
         return kwargs
 
     def form_valid(self, form: NotificationForm) -> HttpResponse:

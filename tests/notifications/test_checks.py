@@ -1,4 +1,4 @@
-from django.template import TemplateDoesNotExist
+from django.template import TemplateDoesNotExist, TemplateSyntaxError
 from django.urls import NoReverseMatch
 
 from django_letter.notifications.checks import (
@@ -30,6 +30,18 @@ def test_check_settings_template__reports_a_missing_template(monkeypatch) -> Non
         raise TemplateDoesNotExist(name)
 
     monkeypatch.setattr("django_letter.notifications.checks.get_template", no_template)
+    errors = check_settings_template()
+    assert len(errors) == 1
+    assert errors[0].id == "django_letter.notifications.E002"
+
+
+def test_check_settings_template__reports_a_syntax_error(monkeypatch) -> None:
+    def broken_template(name: str) -> None:
+        raise TemplateSyntaxError("bad tag")  # noqa: TRY003
+
+    monkeypatch.setattr(
+        "django_letter.notifications.checks.get_template", broken_template
+    )
     errors = check_settings_template()
     assert len(errors) == 1
     assert errors[0].id == "django_letter.notifications.E002"
