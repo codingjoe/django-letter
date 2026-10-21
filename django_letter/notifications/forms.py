@@ -33,7 +33,6 @@ class NotificationForm(forms.Form):
             )
 
     def save(self) -> None:
-        """Store the submitted preferences for this address."""
         for notification in self.notifications:
             NotificationPreference.objects.set_enabled_hash(
                 notification,
