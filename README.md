@@ -186,6 +186,10 @@ The optional `django_letter.notifications` subapp adds unsubscribe buttons for
 email clients. It also gives recipients fine-grained control over each
 notification.
 
+The subapp stores preferences but does not filter delivery. Check
+`NotificationPreference.objects.is_enabled(notification, address)` from
+`django_letter.notifications.models` before you send.
+
 Define each kind of email once and decorate the class that sends it:
 
 ```python
