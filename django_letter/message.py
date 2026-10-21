@@ -5,7 +5,7 @@ from collections.abc import Iterator
 from email import encoders
 from email.message import Message, MIMEPart
 from email.mime.base import MIMEBase
-from email.utils import formataddr, getaddresses
+from email.utils import formataddr, parseaddr
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -186,12 +186,6 @@ class TemplateEmail(EmailMultiAlternatives):
         secure = settings.SECURE_PROXY_SSL_HEADER or settings.SECURE_HSTS_SECONDS
         return f"{'https' if secure else 'http'}://{host.removeprefix('.')}"
 
-    def _notification_address(self) -> str | None:
-        for _, address in getaddresses(self.to):
-            if address:
-                return address.lower()
-        return None
-
     def get_unsubscribe_url(self) -> str | None:
         """
         Return the unsubscribe link for a decorated message.
@@ -199,20 +193,24 @@ class TemplateEmail(EmailMultiAlternatives):
         A message with a `to` address gets a link for the first one. A message
         with none returns `None`.
         """
-        if (notification := self.notification) and (
-            address := self._notification_address()
-        ):
-            return urljoin(
-                self.get_base_url(),
-                reverse(
-                    "django_letter_notifications:unsubscribe",
-                    kwargs={
-                        "token": signer.sign(b64_encode(hash_email(address)).decode()),
-                        "slug": notification.slug,
-                    },
-                ),
-            )
-        return None
+        if not (notification := self.notification):
+            return None
+        try:
+            _, address = parseaddr(next(iter(self.to)))
+        except StopIteration:
+            return None
+        if not address:
+            return None
+        return urljoin(
+            self.get_base_url(),
+            reverse(
+                "django_letter_notifications:unsubscribe",
+                kwargs={
+                    "token": signer.sign(b64_encode(hash_email(address)).decode()),
+                    "slug": notification.slug,
+                },
+            ),
+        )
 
     def render_html(self, **context) -> str:
         """
