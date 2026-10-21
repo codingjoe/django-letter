@@ -33,10 +33,10 @@ def test_registry__get_returns_none_for_an_unknown_slug() -> None:
     assert registry.get("missing") is None
 
 
-def test_registry__all_keeps_registration_order() -> None:
+def test_registry__keeps_registration_order() -> None:
     first = Notification("first", "First")
     second = Notification("second", "Second")
-    assert registry.all()[-2:] == (first, second)
+    assert registry[-2:] == [first, second]
 
 
 def test_notification__decorator_attaches_itself() -> None:

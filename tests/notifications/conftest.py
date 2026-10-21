@@ -8,6 +8,6 @@ from django_letter.notifications import registry
 @pytest.fixture(autouse=True)
 def restore_registry() -> Iterator[None]:
     """Return the global registry to its import-time state after each test."""
-    before = list(registry._notifications)
+    before = list(registry)
     yield
-    registry._notifications[:] = before
+    registry[:] = before

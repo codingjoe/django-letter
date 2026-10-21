@@ -74,35 +74,24 @@ class Notification:
         return email_class
 
 
-class NotificationRegistry:
+class NotificationRegistry(list[Notification]):
     """Store the registered notification kinds."""
-
-    def __init__(self) -> None:
-        self._notifications: list[Notification] = []
 
     def register(self, notification: Notification) -> None:
         """Add a notification to the registry."""
-        if any(item.slug == notification.slug for item in self._notifications):
+        if any(item.slug == notification.slug for item in self):
             raise NotificationImproperlyConfigured(
                 notification,
                 f"Notification {notification.slug!r} is already registered.",
             )
-        self._notifications.append(notification)
+        self.append(notification)
 
     def get(self, slug: str) -> Notification | None:
         """Return the notification registered under `slug`, if any."""
         return next(
-            (
-                notification
-                for notification in self._notifications
-                if notification.slug == slug
-            ),
+            (notification for notification in self if notification.slug == slug),
             None,
         )
-
-    def all(self) -> tuple[Notification, ...]:
-        """Return every registered notification in registration order."""
-        return tuple(self._notifications)
 
 
 registry = NotificationRegistry()
