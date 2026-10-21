@@ -64,14 +64,14 @@ class Notification:
 
     def __call__(self, email_class: type) -> type:
         """Attach this notification to an email class."""
-        if not installed_apps.is_installed("django_letter.notifications"):
-            raise NotificationImproperlyConfigured(
-                self,
-                f"Notification {self.slug!r} requires"
-                " 'django_letter.notifications' in INSTALLED_APPS.",
-            )
-        email_class.notification = self
-        return email_class
+        if installed_apps.is_installed("django_letter.notifications"):
+            email_class.notification = self
+            return email_class
+        raise NotificationImproperlyConfigured(
+            self,
+            f"Notification {self.slug!r} requires"
+            " 'django_letter.notifications' in INSTALLED_APPS.",
+        )
 
 
 class NotificationRegistry(dict[str, Notification]):
