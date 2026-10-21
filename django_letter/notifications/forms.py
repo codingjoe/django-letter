@@ -13,7 +13,7 @@ class NotificationForm(forms.Form):
         if not email:
             raise ValueError("Pass a non-empty `email`.")  # noqa: TRY003
         self.email_hash = hash_email(email)
-        self.notifications = tuple(registry)
+        self.notifications = tuple(registry.values())
         overrides = (
             {}
             if self.is_bound
