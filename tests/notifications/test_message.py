@@ -2,7 +2,6 @@ import pytest
 from django.core.signing import b64_encode
 from django.urls import NoReverseMatch, reverse
 
-from django_letter.exceptions import EmailImproperlyConfigured
 from django_letter.notifications import hash_email, signer
 from tests.testapp.emails import WeeklyDigestEmail, WelcomeEmail, weekly_digest
 
@@ -28,24 +27,6 @@ def test_get_unsubscribe_url__undecorated_email_returns_none() -> None:
 
 def test_get_unsubscribe_url__decorated_without_recipient_returns_none() -> None:
     assert WeeklyDigestEmail(language="en", to=[]).get_unsubscribe_url() is None
-
-
-@pytest.mark.parametrize(
-    "recipients",
-    [
-        {"to": ["ada@example.com", "grace@example.com"]},
-        {"to": ["ada@example.com"], "cc": ["grace@example.com"]},
-        {"to": ["ada@example.com"], "bcc": ["grace@example.com"]},
-    ],
-)
-def test_get_unsubscribe_url__requires_one_distinct_recipient(
-    recipients: dict,
-) -> None:
-    email = WeeklyDigestEmail(language="en", **recipients)
-    with pytest.raises(
-        EmailImproperlyConfigured, match="cannot sign a link for multiple recipients"
-    ):
-        email.get_unsubscribe_url()
 
 
 def test_get_unsubscribe_url__is_absolute_and_signed() -> None:
@@ -80,21 +61,10 @@ def test_get_unsubscribe_url__can_switch_recipients_before_rendering() -> None:
     assert first != second
 
 
-def test_get_unsubscribe_url__one_address_in_any_case_is_one_recipient() -> None:
-    url = WeeklyDigestEmail(
-        language="en", to=["Ada@Example.COM"], cc=["ada@example.com"]
-    ).get_unsubscribe_url()
-    assert url is not None
-
-
-def test_render__rejects_more_than_one_recipient() -> None:
-    email = WeeklyDigestEmail(
-        language="en", to=["ada@example.com", "grace@example.com"]
-    )
-    with pytest.raises(
-        EmailImproperlyConfigured, match="cannot sign a link for multiple recipients"
-    ):
-        email.render()
+def test_get_unsubscribe_url__uses_the_first_to_address() -> None:
+    first = WeeklyDigestEmail(language="en", to=[EMAIL, "grace@example.com"])
+    only_first = WeeklyDigestEmail(language="en", to=[EMAIL])
+    assert first.get_unsubscribe_url() == only_first.get_unsubscribe_url()
 
 
 def test_render_html__adds_the_unsubscribe_url(monkeypatch) -> None:
@@ -170,20 +140,3 @@ def test_send__without_a_recipient_sends_nothing(mailoutbox) -> None:
 def test_send__ignores_an_undecorated_email(mailoutbox) -> None:
     assert WelcomeEmail(language="en", to=[EMAIL]).send() == 1
     assert len(mailoutbox) == 1
-
-
-@pytest.mark.parametrize(
-    "recipients",
-    [
-        {"to": ["ada@example.com", "grace@example.com"]},
-        {"to": ["ada@example.com"], "cc": ["grace@example.com"]},
-        {"to": ["ada@example.com"], "bcc": ["grace@example.com"]},
-    ],
-)
-def test_send__rejects_more_than_one_recipient(mailoutbox, recipients: dict) -> None:
-    email = WeeklyDigestEmail(language="en", **recipients)
-    with pytest.raises(
-        EmailImproperlyConfigured, match="cannot sign a link for multiple recipients"
-    ):
-        email.send()
-    assert mailoutbox == []

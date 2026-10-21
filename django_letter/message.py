@@ -187,22 +187,17 @@ class TemplateEmail(EmailMultiAlternatives):
         return f"{'https' if secure else 'http'}://{host.removeprefix('.')}"
 
     def _notification_address(self) -> str | None:
-        addresses = (
-            address.lower() for _, address in getaddresses(self.recipients()) if address
-        )
-        first = next(addresses, None)
-        if first is not None and any(address != first for address in addresses):
-            raise EmailImproperlyConfigured(
-                type(self), "cannot sign a link for multiple recipients"
-            )
-        return first
+        for _, address in getaddresses(self.to):
+            if address:
+                return address.lower()
+        return None
 
     def get_unsubscribe_url(self) -> str | None:
         """
         Return the unsubscribe link for a decorated message.
 
-        A message with one distinct recipient gets a link. A message with
-        none returns `None`.
+        A message with a `to` address gets a link for the first one. A message
+        with none returns `None`.
         """
         if (notification := self.notification) and (
             address := self._notification_address()
@@ -223,7 +218,7 @@ class TemplateEmail(EmailMultiAlternatives):
         """
         Return the body markup with the stylesheet applied.
 
-        Adds `subject`, `preheader`, and, for one distinct recipient,
+        Adds `subject`, `preheader`, and, for the first `to` address,
         `unsubscribe_url`.
         """
         with translation.override(self.language):
