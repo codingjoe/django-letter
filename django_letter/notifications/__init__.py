@@ -60,7 +60,7 @@ class Notification:
             raise NotificationImproperlyConfigured(
                 self, f"{self.slug!r} is not a valid notification slug."
             )
-        registry.register(self)
+        registry[self.slug] = self
 
     def __call__(self, email_class: type) -> type:
         """Attach this notification to an email class."""
@@ -77,14 +77,13 @@ class Notification:
 class NotificationRegistry(dict[str, Notification]):
     """Store the registered notification kinds."""
 
-    def register(self, notification: Notification) -> None:
-        """Add a notification to the registry."""
-        if notification.slug in self:
+    def __setitem__(self, slug: str, notification: Notification) -> None:
+        if slug in self:
             raise NotificationImproperlyConfigured(
                 notification,
-                f"Notification {notification.slug!r} is already registered.",
+                f"Notification {slug!r} is already registered.",
             )
-        self[notification.slug] = notification
+        super().__setitem__(slug, notification)
 
 
 registry = NotificationRegistry()
