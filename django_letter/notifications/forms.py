@@ -30,9 +30,16 @@ class NotificationForm(forms.Form):
             )
 
     def save(self) -> None:
-        for notification in self.notifications:
-            NotificationPreference.objects.set_enabled_hash(
-                notification,
-                self.email_hash,
-                self.cleaned_data[notification.slug],
-            )
+        NotificationPreference.objects.bulk_create(
+            [
+                NotificationPreference(
+                    email_hash=self.email_hash,
+                    slug=notification.slug,
+                    enabled=self.cleaned_data[notification.slug],
+                )
+                for notification in self.notifications
+            ],
+            update_conflicts=True,
+            unique_fields=("email_hash", "slug"),
+            update_fields=("enabled", "updated_at"),
+        )

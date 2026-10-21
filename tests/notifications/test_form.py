@@ -39,9 +39,16 @@ def test_notification_form__saves_the_submitted_choices() -> None:
     assert NotificationPreference.objects.get(**PREFERENCE).enabled is False
 
 
-def test_notification_form__saving_the_default_removes_the_override() -> None:
+def test_notification_form__saves_with_one_query(django_assert_num_queries) -> None:
+    form = NotificationForm(email=EMAIL, data={weekly_digest.slug: False})
+    form.full_clean()
+    with django_assert_num_queries(1):
+        form.save()
+
+
+def test_notification_form__saving_the_default_updates_the_override() -> None:
     NotificationPreference.objects.create(**PREFERENCE, enabled=False)
     form = NotificationForm(email=EMAIL, data={weekly_digest.slug: True})
     form.full_clean()
     form.save()
-    assert not NotificationPreference.objects.filter(**PREFERENCE).exists()
+    assert NotificationPreference.objects.get(**PREFERENCE).enabled is True
