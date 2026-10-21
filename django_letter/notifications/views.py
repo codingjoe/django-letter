@@ -12,7 +12,7 @@ from django.utils.decorators import method_decorator
 from django.views import generic
 from django.views.decorators.csrf import csrf_exempt
 
-from . import get_notification, signer
+from . import registry, signer
 from .forms import NotificationForm
 from .models import NotificationPreference
 
@@ -45,7 +45,7 @@ class NotificationUnsubscribeView(generic.View):
 
     def get(self, request: HttpRequest, token: str, slug: str) -> HttpResponse:
         email_hash = self.decode_token(token)
-        if notification := get_notification(slug):
+        if notification := registry.get(slug):
             NotificationPreference.objects.set_enabled_hash(
                 notification, email_hash, False
             )

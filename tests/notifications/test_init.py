@@ -5,9 +5,8 @@ import pytest
 from django_letter.notifications import (
     Notification,
     NotificationImproperlyConfigured,
-    get_notification,
-    get_notifications,
     hash_email,
+    registry,
 )
 from tests.testapp.emails import WeeklyDigestEmail, weekly_digest
 
@@ -26,18 +25,18 @@ def test_hash_email__returns_a_32_byte_digest() -> None:
     assert len(hash_email(EMAIL)) == 32
 
 
-def test_get_notification__returns_a_registered_notification() -> None:
-    assert get_notification(weekly_digest.slug) is weekly_digest
+def test_registry__get_returns_a_registered_notification() -> None:
+    assert registry.get(weekly_digest.slug) is weekly_digest
 
 
-def test_get_notification__returns_none_for_an_unknown_slug() -> None:
-    assert get_notification("missing") is None
+def test_registry__get_returns_none_for_an_unknown_slug() -> None:
+    assert registry.get("missing") is None
 
 
-def test_get_notifications__keeps_registration_order() -> None:
+def test_registry__all_keeps_registration_order() -> None:
     first = Notification("first", "First")
     second = Notification("second", "Second")
-    assert get_notifications()[-2:] == (first, second)
+    assert registry.all()[-2:] == (first, second)
 
 
 def test_notification__decorator_attaches_itself() -> None:

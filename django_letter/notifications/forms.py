@@ -1,6 +1,6 @@
 from django import forms
 
-from . import get_notifications, hash_email
+from . import hash_email, registry
 from .models import NotificationPreference
 
 
@@ -13,7 +13,7 @@ class NotificationForm(forms.Form):
         if not email:
             raise ValueError("Pass a non-empty `email`.")  # noqa: TRY003
         self.email_hash = hash_email(email)
-        self.notifications = get_notifications()
+        self.notifications = registry.all()
         overrides = (
             {}
             if self.is_bound

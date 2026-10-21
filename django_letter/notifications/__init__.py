@@ -9,15 +9,13 @@ from django.utils.text import slugify
 __all__ = [
     "Notification",
     "NotificationImproperlyConfigured",
-    "get_notification",
-    "get_notifications",
+    "NotificationRegistry",
     "hash_email",
+    "registry",
     "signer",
 ]
 
 signer = Signer(salt="django_letter.notifications")
-
-_registry: dict[str, Notification] = {}
 
 
 class NotificationImproperlyConfigured(ImproperlyConfigured):
@@ -62,11 +60,7 @@ class Notification:
             raise NotificationImproperlyConfigured(
                 self, f"{self.slug!r} is not a valid notification slug."
             )
-        if self.slug in _registry:
-            raise NotificationImproperlyConfigured(
-                self, f"Notification {self.slug!r} is already registered."
-            )
-        _registry[self.slug] = self
+        registry.register(self)
 
     def __call__(self, email_class: type) -> type:
         """Attach this notification to an email class."""
@@ -80,11 +74,28 @@ class Notification:
         return email_class
 
 
-def get_notification(slug: str) -> Notification | None:
-    """Return the notification registered under `slug`, if any."""
-    return _registry.get(slug)
+class NotificationRegistry:
+    """Store the registered notification kinds."""
+
+    def __init__(self) -> None:
+        self._notifications: dict[str, Notification] = {}
+
+    def register(self, notification: Notification) -> None:
+        """Add a notification to the registry."""
+        if notification.slug in self._notifications:
+            raise NotificationImproperlyConfigured(
+                notification,
+                f"Notification {notification.slug!r} is already registered.",
+            )
+        self._notifications[notification.slug] = notification
+
+    def get(self, slug: str) -> Notification | None:
+        """Return the notification registered under `slug`, if any."""
+        return self._notifications.get(slug)
+
+    def all(self) -> tuple[Notification, ...]:
+        """Return every registered notification in registration order."""
+        return tuple(self._notifications.values())
 
 
-def get_notifications() -> tuple[Notification, ...]:
-    """Return every registered notification in registration order."""
-    return tuple(_registry.values())
+registry = NotificationRegistry()
