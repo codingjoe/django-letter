@@ -43,7 +43,7 @@ expected rather than something to fix.
   view when the setting is unset. The settings view renders the user-provided
   `django_letter/notification_form.html`. A system check verifies the mounted
   URLs, and the decorator verifies the subapp install. A decorated
-  `TemplateEmail` gains the notification context values and the
+  `TemplateEmail` gains the `unsubscribe_url` template value and the
   `List-Unsubscribe` headers. It accepts at most one distinct recipient across
   `to`, `cc`, and `bcc`. With none it renders without links. More than one
   raises `EmailImproperlyConfigured` on render and on send. Its `ready()` calls

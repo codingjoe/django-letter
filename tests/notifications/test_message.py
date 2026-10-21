@@ -97,7 +97,7 @@ def test_render__rejects_more_than_one_recipient() -> None:
         email.render()
 
 
-def test_render_html__adds_the_notification_context(monkeypatch) -> None:
+def test_render_html__adds_the_unsubscribe_url(monkeypatch) -> None:
     template = ContextTemplate()
     monkeypatch.setattr(
         "django_letter.message.loader.get_template", lambda name: template
@@ -106,7 +106,7 @@ def test_render_html__adds_the_notification_context(monkeypatch) -> None:
     url = email.get_unsubscribe_url()
     assert url is not None
     email.render()
-    assert template.context["notification"] is weekly_digest
+    assert "notification" not in template.context
     assert template.context["unsubscribe_url"] == url
 
 
@@ -126,7 +126,6 @@ def test_render_html__without_a_recipient_omits_the_links(monkeypatch) -> None:
         "django_letter.message.loader.get_template", lambda name: template
     )
     WeeklyDigestEmail(language="en", to=[]).render()
-    assert template.context["notification"] is weekly_digest
     assert "unsubscribe_url" not in template.context
 
 

@@ -223,8 +223,8 @@ class TemplateEmail(EmailMultiAlternatives):
         """
         Return the body markup with the stylesheet applied.
 
-        Adds `subject`, `preheader`, `notification`, and, for one distinct
-        recipient, `unsubscribe_url`.
+        Adds `subject`, `preheader`, and, for one distinct recipient,
+        `unsubscribe_url`.
         """
         with translation.override(self.language):
             self.subject = str(self.get_subject(**context))
@@ -232,8 +232,6 @@ class TemplateEmail(EmailMultiAlternatives):
             context["preheader"] = str(self.get_preheader(**context))
             template = loader.get_template(self.get_template())
             context[EMAIL_CONTEXT_KEY] = self
-            if notification := self.notification:
-                context["notification"] = notification
             if url := self.get_unsubscribe_url():
                 context["unsubscribe_url"] = url
             return premailer.transform(
