@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("email_hash", models.CharField(max_length=64)),
+                ("email_hash", models.BinaryField(max_length=32)),
                 ("slug", models.SlugField(max_length=100)),
                 ("enabled", models.BooleanField()),
                 ("updated_at", models.DateTimeField(auto_now=True)),

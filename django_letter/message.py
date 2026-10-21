@@ -7,15 +7,17 @@ from email.message import Message, MIMEPart
 from email.mime.base import MIMEBase
 from email.utils import formataddr, getaddresses
 from pathlib import Path
+from urllib.parse import urljoin
 
 import django
 from django.conf import settings
 from django.contrib.staticfiles import finders
 from django.core.mail import EmailMultiAlternatives
+from django.core.signing import b64_encode
 from django.http import HttpRequest
 from django.template import loader
 from django.templatetags.static import static
-from django.urls import NoReverseMatch
+from django.urls import reverse
 from django.utils import translation
 from django.utils.text import slugify
 from premailer import premailer
@@ -25,7 +27,7 @@ from .exceptions import (
     InactiveUserError,
     MissingEmailError,
 )
-from .notifications.api import Notification, hash_email
+from .notifications import Notification, hash_email, signer
 from .parser import html_to_text
 
 if typing.TYPE_CHECKING:
@@ -41,13 +43,6 @@ class StaticImage(typing.NamedTuple):
 
     path: Path
     url: str
-
-
-class NotificationLinks(typing.NamedTuple):
-    """Pair the opt-out link with the preferences link."""
-
-    unsubscribe: str
-    manage: str
 
 
 def _attached_static_part(path: Path, content_id: str) -> Message:
@@ -74,27 +69,18 @@ def _attached_static_part(path: Path, content_id: str) -> Message:
     return part
 
 
-def _recipient_list(recipients: str | Iterable[str]) -> list[str]:
-    """Return one field as a list of entries."""
-    return [recipients] if isinstance(recipients, str) else list(recipients)
-
-
 def _addresses(*recipient_fields: str | Iterable[str]) -> list[str]:
-    """Collect the lower-case mailbox part of every entry in the given fields."""
-    return [
-        address.lower()
-        for field in recipient_fields
-        for _, address in getaddresses(_recipient_list(field))
-        if address
-    ]
+    addresses: list[str] = []
+    for field in recipient_fields:
+        entries = [field] if isinstance(field, str) else field
+        for _, address in getaddresses(entries):
+            if address:
+                addresses.append(address.lower())
+    return addresses
 
 
 class TemplateEmail(EmailMultiAlternatives):
-    """
-    Render the HTML body and its plain-text alternative.
-
-    The markup comes from `template_name`.
-    """
+    """Render the HTML and plain-text bodies of one Django template."""
 
     template_name: str = ""
     subject: str = ""
@@ -136,7 +122,6 @@ class TemplateEmail(EmailMultiAlternatives):
         self.base_url = base_url or type(self).base_url
         self.extra_context = extra_context or {}
         self.attached_static = {}
-        self._notification_links: tuple[str, NotificationLinks] | None = None
         super().__init__(**{"subject": self.subject} | kwargs)
 
     @classmethod
@@ -144,9 +129,8 @@ class TemplateEmail(EmailMultiAlternatives):
         """
         Return an email addressed to the given recipient.
 
-        The full name becomes the display name, and the user joins the template
-        context. Pass the values of the subclass and `language` as keyword
-        arguments. The `to=` and `extra_context` values are set here.
+        The full name becomes the display name, and the user joins the
+        template context.
 
         Raises:
             InactiveUserError: If the recipient is deactivated.
@@ -164,50 +148,45 @@ class TemplateEmail(EmailMultiAlternatives):
 
     def message(self, **kwargs) -> Message:
         self.render()
-        if (links := self.get_notification_urls()) and "list-unsubscribe" not in {
+        if (url := self.get_unsubscribe_url()) and "list-unsubscribe" not in {
             header.lower() for header in self.extra_headers
         }:
-            self.extra_headers["List-Unsubscribe"] = f"<{links.unsubscribe}>"
+            self.extra_headers["List-Unsubscribe"] = f"<{url}>"
             self.extra_headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
         return super().message(**kwargs)
 
     def send(self, fail_silently: bool = False, **kwargs) -> int:
-        """
-        Deliver to a recipient who still wants this notification.
-
-        A decorated message may name zero or one distinct recipient across
-        `to`, `cc`, and `bcc`. With zero, nothing is delivered and the call
-        returns `0`. With more than one, it raises `EmailImproperlyConfigured`
-        before any mail leaves, because the links sign one address. When the
-        recipient's preference is off, nothing is delivered either.
-        """
         if not (notification := self.notification):
             return super().send(fail_silently, **kwargs)
         if not (address := self._notification_address()):
             return 0
-        if not notification.is_enabled(address):
+        from .notifications.models import NotificationPreference
+
+        if not NotificationPreference.objects.is_enabled(notification, address):
             return 0
         return super().send(fail_silently, **kwargs)
 
     def get_template(self) -> str:
-        """Return the configured markup, raising `ImproperlyConfigured` when unset."""
+        """
+        Return the configured markup.
+
+        Raises:
+            EmailImproperlyConfigured: If the class has no template.
+        """
         if not self.template_name:
             raise EmailImproperlyConfigured(type(self), "is missing a template")
         return self.template_name
 
     def get_context_data(self) -> dict[str, typing.Any]:
-        """
-        Return the values the template needs.
-
-        An override calls `super().get_context_data()` to keep `extra_context`.
-        """
+        """Return the values the template needs."""
         return {**self.extra_context}
 
     def get_subject(self, **context) -> str:
         """
         Interpolate the `%(name)s` placeholders of the configured line.
 
-        Raise `ImproperlyConfigured` when a subclass leaves that line empty.
+        Raises:
+            EmailImproperlyConfigured: If the class has no subject.
         """
         if not self.subject:
             raise EmailImproperlyConfigured(type(self), "is missing a subject")
@@ -223,11 +202,12 @@ class TemplateEmail(EmailMultiAlternatives):
 
     def get_base_url(self) -> str:
         """
-        Return the prefix that resolves relative links and image sources.
+        Return the base URL for relative links and images.
 
-        The `base_url` attribute wins. Without it, the address comes from the
-        first usable `ALLOWED_HOSTS` entry, with `https` when the project sits
-        behind a TLS-terminating proxy or sends HSTS headers.
+        Uses `base_url`, then the first usable `ALLOWED_HOSTS` entry.
+
+        Raises:
+            EmailImproperlyConfigured: If no base URL can be built.
         """
         if self.base_url:
             return self.base_url
@@ -245,13 +225,6 @@ class TemplateEmail(EmailMultiAlternatives):
         return f"{'https' if secure else 'http'}://{host.removeprefix('.')}"
 
     def _notification_address(self) -> str | None:
-        """
-        Return the one mailbox across `to`, `cc`, and `bcc` that a link can sign.
-
-        Addresses compare case-insensitively. Return `None` when the message
-        names none. Raise `EmailImproperlyConfigured` when it names more than
-        one.
-        """
         addresses = set(_addresses(self.to, self.cc, self.bcc))
         if len(addresses) > 1:
             raise EmailImproperlyConfigured(
@@ -259,58 +232,43 @@ class TemplateEmail(EmailMultiAlternatives):
             )
         return next(iter(addresses), None)
 
-    def get_notification_urls(self) -> NotificationLinks | None:
+    def get_unsubscribe_url(self) -> str | None:
         """
-        Return the opt-out and preferences links, when they apply.
+        Return the unsubscribe link for a decorated message.
 
-        A decorated class with one distinct mailbox across `to`, `cc`, and
-        `bcc` gets links. A message that names none renders without them.
-        Raise `EmailImproperlyConfigured` when the message names more than one,
-        when the subapp routes are not mounted, or when a rendered message is
-        reused for another recipient. The links are signed once and cached with
-        the address they belong to.
+        A message with one distinct recipient gets a link. A message with
+        none returns `None`.
+
+        Raises:
+            EmailImproperlyConfigured: If the message names more than one
+                distinct recipient.
         """
-        if not (notification := self.notification):
-            return None
-        if not (address := self._notification_address()):
-            return None
-        if self._notification_links:
-            signed_for, links = self._notification_links
-            if signed_for == address:
-                return links
-            if self.html is not None:
-                raise EmailImproperlyConfigured(
-                    type(self),
-                    "cannot reuse a rendered message for another recipient",
-                )
-        email_hash = hash_email(address)
-        base_url = self.get_base_url()
-        try:
-            links = NotificationLinks(
-                notification.unsubscribe_url(base_url, email_hash),
-                notification.manage_url(base_url, email_hash),
+        if (notification := self.notification) and (
+            address := self._notification_address()
+        ):
+            email_hash = hash_email(address)
+            return urljoin(
+                self.get_base_url(),
+                reverse(
+                    "django_letter_notifications:unsubscribe",
+                    kwargs={
+                        "token": signer.sign(b64_encode(email_hash).decode()),
+                        "slug": notification.slug,
+                    },
+                ),
             )
-        except NoReverseMatch:
-            raise EmailImproperlyConfigured(
-                type(self),
-                "cannot build notification links."
-                " Mount 'django_letter.notifications.urls'",
-            ) from None
-        self._notification_links = address, links
-        return links
+        return None
 
     def render_html(self, **context) -> str:
         """
         Return the body markup with the stylesheet applied.
 
-        `subject` and `preheader` join the context, and everything uses the
-        language of the message. A decorated message also adds `notification`.
-        With one distinct mailbox across `to`, `cc`, and `bcc` it adds
-        `unsubscribe_url` and `manage_notifications_url`. With none it adds
-        neither, and with more than one it raises `EmailImproperlyConfigured`.
-        The first link opens a confirmation page, and only its POST disables
-        the notification. Pictures that the template asks for with
-        `{% attached_static %}` register on this message.
+        Adds `subject`, `preheader`, `notification`, and, for one distinct
+        recipient, `unsubscribe_url`.
+
+        Raises:
+            EmailImproperlyConfigured: If the message names more than one
+                distinct recipient.
         """
         with translation.override(self.language):
             self.subject = str(self.get_subject(**context))
@@ -320,9 +278,8 @@ class TemplateEmail(EmailMultiAlternatives):
             context[EMAIL_CONTEXT_KEY] = self
             if notification := self.notification:
                 context["notification"] = notification
-            if links := self.get_notification_urls():
-                context["unsubscribe_url"] = links.unsubscribe
-                context["manage_notifications_url"] = links.manage
+            if url := self.get_unsubscribe_url():
+                context["unsubscribe_url"] = url
             return premailer.transform(
                 html=template.render(context),
                 base_url=self.get_base_url(),
@@ -343,15 +300,11 @@ class TemplateEmail(EmailMultiAlternatives):
 
     def attach_static(self, name: str) -> str:
         """
-        Register the file that the finders resolve for `name` on this message.
-
-        The content ID is the base name of the path, so the body gets
-        `cid:<base name>`. The file and its URL go into `attached_static`, and
-        asking again for the same file returns the same address.
+        Attach a static file and return its `cid:` URL.
 
         Raises:
-            EmailImproperlyConfigured: If the file is nowhere to be found, or
-                two different files share a base name.
+            EmailImproperlyConfigured: If the file is missing or two files
+                share a base name.
         """
         if not (found := finders.find(name)) or not Path(found).is_file():
             raise EmailImproperlyConfigured(
@@ -367,6 +320,13 @@ class TemplateEmail(EmailMultiAlternatives):
         return f"cid:{content_id}"
 
     def render(self, **context: typing.Any) -> None:
+        """
+        Render the bodies and attach the files once.
+
+        Raises:
+            EmailImproperlyConfigured: If the template, subject, language, or
+                notification links are misconfigured.
+        """
         if self.html is None:
             self.html = self.render_html(**(self.get_context_data() | context))
             self.body = self.render_body(self.html)

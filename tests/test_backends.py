@@ -1,5 +1,3 @@
-"""Behaviour of the console email backend."""
-
 import io
 
 from django.core.mail import EmailMessage

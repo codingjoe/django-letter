@@ -7,3 +7,6 @@ class NotificationConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "django_letter.notifications"
     label = "django_letter_notifications"
+
+    def ready(self) -> None:
+        from . import checks  # noqa: F401

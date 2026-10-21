@@ -1,5 +1,3 @@
-"""Behaviour of `TemplateEmail` outside the preview views."""
-
 import re
 from email.message import Message, MIMEPart
 from pathlib import Path

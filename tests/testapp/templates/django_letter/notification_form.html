@@ -1,0 +1,5 @@
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_div }}
+  <button type="submit">Save preferences</button>
+</form>

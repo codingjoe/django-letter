@@ -5,9 +5,9 @@ from collections.abc import Iterator
 from django.utils.translation import gettext_lazy as _
 
 from django_letter import TemplateEmail
-from django_letter.notifications import Notification, subscribe
+from django_letter.notifications import Notification
 
-WEEKLY_DIGEST = Notification(
+weekly_digest = Notification(
     "weekly-digest",
     _("Weekly digest"),
     _("A weekly summary of your account."),
@@ -76,7 +76,7 @@ class RemoteImagesEmail(TemplateEmail):
     preheader = _("Our logo needs no download.")
 
 
-@subscribe(WEEKLY_DIGEST)
+@weekly_digest
 class WeeklyDigestEmail(TemplateEmail):
     """Deliver a summary of account activity with a link to stop the updates."""
 

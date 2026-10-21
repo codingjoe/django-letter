@@ -37,18 +37,18 @@ expected rather than something to fix.
   `preheader`, override `get_context_data()` for the values the markup needs,
   and `gen_attachments()` to carry files.
 - `django_letter/notifications/` is optional. It holds the `Notification`
-  registry, the preferences view, and the unsubscribe page, which asks for
-  confirmation on GET and disables a notification only on POST. The manage
-  view renders the package form template
-  `django_letter_notifications/notification_form.html` with
-  `NotificationForm`, and `NotificationPreference` stores each override. A
-  decorated `TemplateEmail` gains the notification context values, the
-  `List-Unsubscribe` headers, and the `send()` filter. It accepts at most one
-  distinct recipient across `to`, `cc`, and `bcc`. With none it renders without
-  links and sends nothing, and more than one raises
-  `EmailImproperlyConfigured` on render and on send. Its `urls.py` calls
-  `autodiscover_modules("emails")` itself, so a production process fills the
-  registry without the debug URLs.
+  registry, `NotificationForm`, `NotificationPreference`, the login-protected
+  settings view, and the unsubscribe view. The unsubscribe view disables the
+  notification and redirects to `UNSUBSCRIBE_REDIRECT_URL`, or to the settings
+  view when the setting is unset. The settings view renders the user-provided
+  `django_letter/notification_form.html`. A system check verifies the mounted
+  URLs, and the decorator verifies the subapp install. A decorated
+  `TemplateEmail` gains the notification context values, the `List-Unsubscribe`
+  headers, and the `send()` filter. It accepts at most one distinct recipient
+  across `to`, `cc`, and `bcc`. With none it renders without links and sends
+  nothing, and more than one raises `EmailImproperlyConfigured` on render and on
+  send. Its `urls.py` calls `autodiscover_modules("emails")` itself, so a
+  production process fills the registry without the debug URLs.
 - Rendering is a pipeline rather than one step: `render()` → `render_html()`
   (template render under `translation.override()`, then `premailer.transform()`
   with a resolved `base_url`) → `render_body()` → `parser.html_to_text()`. The

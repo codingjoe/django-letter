@@ -1,5 +1,3 @@
-"""Behaviour of the HTML-to-text flattening."""
-
 import pytest
 
 from django_letter.parser import html_to_text

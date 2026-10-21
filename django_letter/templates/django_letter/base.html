@@ -391,6 +391,11 @@ SOFTWARE.
                 <tr>
                   <td class="content-block">
                     {% block footer_content %}{% endblock footer_content %}
+                    {% if unsubscribe_url %}
+                      <p>
+                        <a href="{{ unsubscribe_url }}">{% translate "unsubscribe"|capfirst %}</a>
+                      </p>
+                    {% endif %}
                   </td>
                 </tr>
                 {% endtable %}

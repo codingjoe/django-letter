@@ -1,5 +1,3 @@
-"""Behaviour of the bundled `django_letter` template tags."""
-
 from django.template import Context, Template
 from django.template.loader import render_to_string
 from django.templatetags.static import static
@@ -53,3 +51,10 @@ def test_base_template_renders_tables() -> None:
     assert f'{TABLE} class="body">' in html
     assert f'{TABLE} class="main">' in html
     assert f"{TABLE}>" in html
+
+
+def test_base_template_renders_the_unsubscribe_link() -> None:
+    html = render_to_string(
+        "django_letter/base.html", {"unsubscribe_url": "https://example.com/u/"}
+    )
+    assert '<a href="https://example.com/u/">Unsubscribe</a>' in html
