@@ -18,11 +18,6 @@ def test_notification_form__hashes_an_address() -> None:
     assert form.fields[weekly_digest.slug].initial is True
 
 
-def test_notification_form__rejects_a_whitespace_only_address() -> None:
-    with pytest.raises(ValueError, match="Pass a non-empty `email`."):
-        NotificationForm(email="   ")
-
-
 def test_notification_form__reads_stored_overrides() -> None:
     NotificationPreference.objects.create(**PREFERENCE, enabled=False)
     form = NotificationForm(email=EMAIL)

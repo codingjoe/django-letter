@@ -9,9 +9,6 @@ class NotificationForm(forms.Form):
 
     def __init__(self, email: str, **kwargs) -> None:
         super().__init__(**kwargs)
-        email = email.strip()
-        if not email:
-            raise ValueError("Pass a non-empty `email`.")  # noqa: TRY003
         self.email_hash = hash_email(email)
         self.notifications = tuple(registry.values())
         overrides = (
