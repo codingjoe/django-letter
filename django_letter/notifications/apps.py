@@ -1,4 +1,5 @@
 from django.apps import AppConfig
+from django.utils.module_loading import autodiscover_modules
 
 
 class NotificationConfig(AppConfig):
@@ -9,4 +10,5 @@ class NotificationConfig(AppConfig):
     label = "django_letter_notifications"
 
     def ready(self) -> None:
+        autodiscover_modules("emails")
         from . import checks  # noqa: F401

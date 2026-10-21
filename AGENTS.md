@@ -47,8 +47,8 @@ expected rather than something to fix.
   headers, and the `send()` filter. It accepts at most one distinct recipient
   across `to`, `cc`, and `bcc`. With none it renders without links and sends
   nothing, and more than one raises `EmailImproperlyConfigured` on render and on
-  send. Its `urls.py` calls `autodiscover_modules("emails")` itself, so a
-  production process fills the registry without the debug URLs.
+  send. Its `ready()` calls `autodiscover_modules("emails")`, so a production
+  process fills the registry without the debug URLs.
 - Rendering is a pipeline rather than one step: `render()` → `render_html()`
   (template render under `translation.override()`, then `premailer.transform()`
   with a resolved `base_url`) → `render_body()` → `parser.html_to_text()`. The
@@ -90,8 +90,6 @@ expected rather than something to fix.
 - Tests are plain pytest functions named `test_*` with `-> None`, no test
   classes. They use the pytest-django `client` fixture and `reverse()` rather
   than hard-coded URLs. Fixtures live in the module that needs them.
-  `tests/conftest.py` only imports `django_letter.urls`, which is what triggers
-  autodiscovery of the test app's `emails` module.
 - The example emails live in `tests/testapp/emails.py` with their templates in
   `tests/testapp/templates/testapp/`. Adding one means updating
   `test_message.py::test_get_email_classes` and its expected mapping.
