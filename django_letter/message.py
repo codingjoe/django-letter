@@ -155,17 +155,6 @@ class TemplateEmail(EmailMultiAlternatives):
             self.extra_headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
         return super().message(**kwargs)
 
-    def send(self, fail_silently: bool = False, **kwargs) -> int:
-        if not (notification := self.notification):
-            return super().send(fail_silently, **kwargs)
-        if not (address := self._notification_address()):
-            return 0
-        from .notifications.models import NotificationPreference
-
-        if not NotificationPreference.objects.is_enabled(notification, address):
-            return 0
-        return super().send(fail_silently, **kwargs)
-
     def get_template(self) -> str:
         """
         Return the configured markup.

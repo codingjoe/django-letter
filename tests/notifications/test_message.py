@@ -5,7 +5,6 @@ from django.urls import NoReverseMatch, reverse
 from django_letter.exceptions import EmailImproperlyConfigured
 from django_letter.message import _addresses
 from django_letter.notifications import hash_email, signer
-from django_letter.notifications.models import NotificationPreference
 from tests.testapp.emails import WeeklyDigestEmail, WelcomeEmail, weekly_digest
 
 pytestmark = pytest.mark.django_db
@@ -160,26 +159,9 @@ def test_send__delivers_to_an_enabled_recipient(mailoutbox) -> None:
     assert mailoutbox[0].to == [EMAIL]
 
 
-def test_send__looks_up_preferences_once(django_assert_num_queries, mailoutbox) -> None:
-    with django_assert_num_queries(1):
-        WeeklyDigestEmail(language="en").send()
-    assert len(mailoutbox) == 1
-
-
 def test_send__keeps_the_display_name(mailoutbox) -> None:
     assert WeeklyDigestEmail(language="en", to=[f"Ada <{EMAIL}>"]).send() == 1
     assert mailoutbox[0].to == [f"Ada <{EMAIL}>"]
-
-
-def test_send__skips_an_opted_out_recipient(mailoutbox) -> None:
-    NotificationPreference.objects.set_enabled_hash(
-        weekly_digest, hash_email(EMAIL), False
-    )
-    email = WeeklyDigestEmail(language="en", cc=[EMAIL])
-    assert email.send() == 0
-    assert mailoutbox == []
-    assert email.to == [EMAIL]
-    assert email.cc == [EMAIL]
 
 
 def test_send__without_a_recipient_sends_nothing(mailoutbox) -> None:
