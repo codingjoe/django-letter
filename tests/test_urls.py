@@ -1,5 +1,3 @@
-"""The URLconf only mounts the preview routes in debug or test mode."""
-
 import importlib
 from typing import Any
 

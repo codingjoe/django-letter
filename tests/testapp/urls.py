@@ -6,4 +6,5 @@ from django.views import generic
 urlpatterns = [
     path("", generic.RedirectView.as_view(pattern_name="django_letter:list")),
     path("emails/", include("django_letter.urls")),
+    path("notifications/", include("django_letter.notifications.urls")),
 ]

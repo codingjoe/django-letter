@@ -1,0 +1,88 @@
+import hashlib
+from dataclasses import dataclass
+
+from django.apps import apps as installed_apps
+from django.core.exceptions import ImproperlyConfigured
+from django.core.signing import Signer
+from django.utils.text import slugify
+
+__all__ = [
+    "Notification",
+    "NotificationImproperlyConfigured",
+    "NotificationRegistry",
+    "hash_email",
+    "registry",
+    "signer",
+]
+
+signer = Signer(salt="django_letter.notifications")
+
+
+class NotificationImproperlyConfigured(ImproperlyConfigured):
+    """Signal that a notification is misconfigured."""
+
+    def __init__(self, notification: Notification, message: str) -> None:
+        self.notification = notification
+        super().__init__(message)
+
+
+def hash_email(email: str) -> bytes:
+    return hashlib.sha256(
+        f"django_letter.notifications{email.strip().lower()}".encode()
+    ).digest()
+
+
+@dataclass
+class Notification:
+    """
+    Register one kind of email.
+
+    The slug must be at most 100 characters and equal its own `slugify()`
+    output. Use the instance as a class decorator to attach it to an email
+    class.
+
+    Raises:
+        NotificationImproperlyConfigured: If the slug is too long, invalid, or
+            already registered.
+    """
+
+    slug: str
+    name: str
+    help_text: str = ""
+    default: bool = True
+
+    def __post_init__(self) -> None:
+        if len(self.slug) > 100:
+            raise NotificationImproperlyConfigured(
+                self, f"{self.slug!r} is longer than 100 characters."
+            )
+        if not self.slug or slugify(self.slug) != self.slug:
+            raise NotificationImproperlyConfigured(
+                self, f"{self.slug!r} is not a valid notification slug."
+            )
+        registry[self.slug] = self
+
+    def __call__(self, email_class: type) -> type:
+        """Attach this notification to an email class."""
+        if installed_apps.is_installed("django_letter.notifications"):
+            email_class.notification = self
+            return email_class
+        raise NotificationImproperlyConfigured(
+            self,
+            "'django_letter.notifications' must be in INSTALLED_APPS.",
+        )
+
+
+class NotificationRegistry(dict[str, Notification]):
+    """Store the registered notification kinds."""
+
+    def __setitem__(self, slug: str, notification: Notification) -> None:
+        if slug in self:
+            raise NotificationImproperlyConfigured(
+                notification,
+                f"Notification {slug!r} is already registered.",
+            )
+        super().__setitem__(slug, notification)
+
+
+registry = NotificationRegistry()

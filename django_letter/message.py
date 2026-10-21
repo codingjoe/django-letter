@@ -5,16 +5,19 @@ from collections.abc import Iterator
 from email import encoders
 from email.message import Message, MIMEPart
 from email.mime.base import MIMEBase
-from email.utils import formataddr
+from email.utils import formataddr, parseaddr
 from pathlib import Path
+from urllib.parse import urljoin
 
 import django
 from django.conf import settings
 from django.contrib.staticfiles import finders
 from django.core.mail import EmailMultiAlternatives
+from django.core.signing import b64_encode
 from django.http import HttpRequest
 from django.template import loader
 from django.templatetags.static import static
+from django.urls import reverse
 from django.utils import translation
 from django.utils.text import slugify
 from premailer import premailer
@@ -24,6 +27,7 @@ from .exceptions import (
     InactiveUserError,
     MissingEmailError,
 )
+from .notifications import Notification, hash_email, signer
 from .parser import html_to_text
 
 if typing.TYPE_CHECKING:
@@ -74,6 +78,7 @@ class TemplateEmail(EmailMultiAlternatives):
     base_url: str | None = None
     html: str | None = None
     attached_static: dict[str, StaticImage]
+    notification: Notification | None = None
 
     @classmethod
     def slug(cls) -> str:
@@ -114,13 +119,8 @@ class TemplateEmail(EmailMultiAlternatives):
         """
         Return an email addressed to the given recipient.
 
-        The full name becomes the display name, and the user joins the template
-        context. Pass the values of the subclass and `language` as keyword
-        arguments. The `to=` and `extra_context` values are set here.
-
-        Raises:
-            InactiveUserError: If the recipient is deactivated.
-            MissingEmailError: If the recipient has no email address.
+        The full name becomes the display name, and the user joins the
+        template context.
         """
         if email := getattr(user, user.EMAIL_FIELD):
             if user.is_active:
@@ -134,28 +134,25 @@ class TemplateEmail(EmailMultiAlternatives):
 
     def message(self, **kwargs) -> Message:
         self.render()
+        if (url := self.get_unsubscribe_url()) and "list-unsubscribe" not in {
+            header.lower() for header in self.extra_headers
+        }:
+            self.extra_headers["List-Unsubscribe"] = f"<{url}>"
+            self.extra_headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
         return super().message(**kwargs)
 
     def get_template(self) -> str:
-        """Return the configured markup, raising `ImproperlyConfigured` when unset."""
+        """Return the configured markup."""
         if not self.template_name:
             raise EmailImproperlyConfigured(type(self), "is missing a template")
         return self.template_name
 
     def get_context_data(self) -> dict[str, typing.Any]:
-        """
-        Return the values the template needs.
-
-        An override calls `super().get_context_data()` to keep `extra_context`.
-        """
+        """Return the values the template needs."""
         return {**self.extra_context}
 
     def get_subject(self, **context) -> str:
-        """
-        Interpolate the `%(name)s` placeholders of the configured line.
-
-        Raise `ImproperlyConfigured` when a subclass leaves that line empty.
-        """
+        """Interpolate the `%(name)s` placeholders of the configured line."""
         if not self.subject:
             raise EmailImproperlyConfigured(type(self), "is missing a subject")
         return self.subject % context
@@ -170,11 +167,9 @@ class TemplateEmail(EmailMultiAlternatives):
 
     def get_base_url(self) -> str:
         """
-        Return the prefix that resolves relative links and image sources.
+        Return the base URL for relative links and images.
 
-        The `base_url` attribute wins. Without it, the address comes from the
-        first usable `ALLOWED_HOSTS` entry, with `https` when the project sits
-        behind a TLS-terminating proxy or sends HSTS headers.
+        Uses `base_url`, then the first usable `ALLOWED_HOSTS` entry.
         """
         if self.base_url:
             return self.base_url
@@ -191,13 +186,36 @@ class TemplateEmail(EmailMultiAlternatives):
         secure = settings.SECURE_PROXY_SSL_HEADER or settings.SECURE_HSTS_SECONDS
         return f"{'https' if secure else 'http'}://{host.removeprefix('.')}"
 
+    def get_unsubscribe_url(self) -> str | None:
+        """
+        Return the unsubscribe link for a decorated message.
+
+        A message with a `to` address gets a link for the first one. A message
+        with none returns `None`.
+        """
+        if notification := self.notification:
+            try:
+                _, address = parseaddr(next(iter(self.to)))
+            except StopIteration:
+                return None
+            return urljoin(
+                self.get_base_url(),
+                reverse(
+                    "django_letter_notifications:unsubscribe",
+                    kwargs={
+                        "token": signer.sign(b64_encode(hash_email(address)).decode()),
+                        "slug": notification.slug,
+                    },
+                ),
+            )
+        return None
+
     def render_html(self, **context) -> str:
         """
         Return the body markup with the stylesheet applied.
 
-        `subject` and `preheader` join the context, and everything renders in the
-        language of the message. Pictures that the template asks for with
-        `{% attached_static %}` register on this message.
+        Adds `subject`, `preheader`, and, for the first `to` address,
+        `unsubscribe_url`.
         """
         with translation.override(self.language):
             self.subject = str(self.get_subject(**context))
@@ -205,6 +223,8 @@ class TemplateEmail(EmailMultiAlternatives):
             context["preheader"] = str(self.get_preheader(**context))
             template = loader.get_template(self.get_template())
             context[EMAIL_CONTEXT_KEY] = self
+            if url := self.get_unsubscribe_url():
+                context["unsubscribe_url"] = url
             return premailer.transform(
                 html=template.render(context),
                 base_url=self.get_base_url(),
@@ -224,17 +244,7 @@ class TemplateEmail(EmailMultiAlternatives):
         yield from ()
 
     def attach_static(self, name: str) -> str:
-        """
-        Register the file that the finders resolve for `name` on this message.
-
-        The content ID is the base name of the path, so the body gets
-        `cid:<base name>`. The file and its URL go into `attached_static`, and
-        asking again for the same file returns the same address.
-
-        Raises:
-            EmailImproperlyConfigured: If the file is nowhere to be found, or
-                two different files share a base name.
-        """
+        """Attach a static file and return its `cid:` URL."""
         if not (found := finders.find(name)) or not Path(found).is_file():
             raise EmailImproperlyConfigured(
                 type(self), f"cannot find the static file {name}"
@@ -249,6 +259,7 @@ class TemplateEmail(EmailMultiAlternatives):
         return f"cid:{content_id}"
 
     def render(self, **context: typing.Any) -> None:
+        """Render the bodies and attach the files once."""
         if self.html is None:
             self.html = self.render_html(**(self.get_context_data() | context))
             self.body = self.render_body(self.html)

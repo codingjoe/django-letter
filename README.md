@@ -31,6 +31,7 @@ plain-text body from the same template.
    # settings.py
    INSTALLED_APPS = [
        "django_letter",
+       "django_letter.notifications",  # Optional. Adds unsubscribe links.
        # ...
    ]
    ```
@@ -57,6 +58,21 @@ plain-text body from the same template.
      <source media="(prefers-color-scheme: light)" srcset="https://github.com/codingjoe/django-letter/raw/main/docs/images/preview-light.png">
      <img alt="WelcomeEmail in the desktop, mobile and plain-text frames of the preview page" src="https://github.com/codingjoe/django-letter/raw/main/docs/images/preview-light.png">
    </picture>
+
+1. Optional: mount the notification URLs:
+
+   ```python
+   # urls.py
+   from django.urls import include, path
+
+   urlpatterns = [
+       # ...
+       path("notifications/", include("django_letter.notifications.urls")),
+   ]
+   ```
+
+   Create `django_letter/notification_form.html` for the packaged settings
+   view. Log in to change your preferences.
 
 ## Usage
 
@@ -162,6 +178,39 @@ them:
 ```python
 OrderShippedEmail(order, to=["customer@example.com"], language="de").send()
 OrderShippedEmail.to_user(user, order=order, language="de").send()
+```
+
+### Let recipients manage preferences
+
+The optional `django_letter.notifications` subapp adds unsubscribe buttons for
+email clients. It also gives recipients fine-grained control over each
+notification.
+
+The subapp stores preferences but does not filter delivery. Check
+`NotificationPreference.objects.is_enabled(notification, address)` from
+`django_letter.notifications.models` before you send.
+
+Define each kind of email once and decorate the class that sends it:
+
+```python
+# myapp/emails.py
+from django.utils.translation import gettext_lazy as _
+
+from django_letter import TemplateEmail
+from django_letter.notifications import Notification
+
+weekly_digest = Notification(
+    "weekly-digest",
+    _("Weekly digest"),
+    _("A weekly summary of your account."),
+)
+product_news = Notification("product-news", _("Product news"), default=False)
+
+
+@weekly_digest
+class WeeklyDigestEmail(TemplateEmail):
+    template_name = "emails/weekly_digest.html"
+    subject = _("Your weekly digest")
 ```
 
 ### Test it

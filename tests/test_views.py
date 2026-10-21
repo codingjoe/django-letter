@@ -1,5 +1,3 @@
-"""Behaviour of the debug preview routes."""
-
 import json
 import re
 import shutil

@@ -5,6 +5,13 @@ from collections.abc import Iterator
 from django.utils.translation import gettext_lazy as _
 
 from django_letter import TemplateEmail
+from django_letter.notifications import Notification
+
+weekly_digest = Notification(
+    "weekly-digest",
+    _("Weekly digest"),
+    _("A weekly summary of your account."),
+)
 
 
 class WelcomeEmail(TemplateEmail):
@@ -67,3 +74,15 @@ class RemoteImagesEmail(TemplateEmail):
     template_name = "testapp/remote.html"
     subject = _("News from the workshop")
     preheader = _("Our logo needs no download.")
+
+
+@weekly_digest
+class WeeklyDigestEmail(TemplateEmail):
+    """Deliver a summary of account activity with a link to stop the updates."""
+
+    template_name = "testapp/digest.html"
+    subject = _("Your weekly digest")
+    preheader = _("A summary of your account this week.")
+
+    def __init__(self, to: str | list[str] = "ada@example.com", **kwargs) -> None:
+        super().__init__(to=[to] if isinstance(to, str) else to, **kwargs)
