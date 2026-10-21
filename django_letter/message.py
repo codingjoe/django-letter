@@ -246,13 +246,12 @@ class TemplateEmail(EmailMultiAlternatives):
         if (notification := self.notification) and (
             address := self._notification_address()
         ):
-            email_hash = hash_email(address)
             return urljoin(
                 self.get_base_url(),
                 reverse(
                     "django_letter_notifications:unsubscribe",
                     kwargs={
-                        "token": signer.sign(b64_encode(email_hash).decode()),
+                        "token": signer.sign(b64_encode(hash_email(address)).decode()),
                         "slug": notification.slug,
                     },
                 ),
