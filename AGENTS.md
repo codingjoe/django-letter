@@ -2,8 +2,9 @@
 
 `django-letter` is a reusable Django app published to PyPI. It renders an HTML
 email from a Django template, inlines the CSS with `premailer`, and derives a
-Gmail-style plain-text alternative from the same markup. It ships no models and
-no migrations.
+Gmail-style plain-text alternative from the same markup. The core `django_letter`
+app ships no models and no migrations. The optional `django_letter.notifications`
+subapp owns the only model, `NotificationPreference`, and its migration.
 
 ## Commands
 
@@ -19,14 +20,14 @@ Everything runs through `uv`, which syncs the environment on `uv run`.
 | Test app server        | `uv run tests/manage.py runserver`                 |
 | Build distributions    | `uvx --from build pyproject-build --sdist --wheel` |
 
-`prek run <file1> <file2>` is the only way linting and formatting are applied;
-it drives the hooks in `.pre-commit-config.yaml` over the paths you pass. Its
+`prek run <file1> <file2>` is the only way linting and formatting are applied.
+It drives the hooks in `.pre-commit-config.yaml` over the paths you pass. Its
 `no-commit-to-branch` hook fails on `main`, so an exit code of 1 there is
 expected rather than something to fix.
 
 `addopts` already carries `--cov --cov-report=term --cov-report=xml --tb=short -rxs`, so a plain `pytest` run rewrites `.coverage` and `coverage.xml`. Add
-`--no-cov` while iterating. CI runs Python 3.12–3.14 against Django 5.2 and 6.1;
-reproduce a version-specific failure with
+`--no-cov` while iterating. CI runs Python 3.14 and 3.15 against Django 5.2,
+6.0, and 6.1. Reproduce a version-specific failure with
 `uv run --with django~=5.2.0 pytest`.
 
 ## Architecture
@@ -35,6 +36,19 @@ reproduce a version-specific failure with
   center of the package. Subclasses set `template_name`, `subject` and
   `preheader`, override `get_context_data()` for the values the markup needs,
   and `gen_attachments()` to carry files.
+- `django_letter/notifications/` is optional. It holds the `Notification`
+  registry, the preferences view, and the unsubscribe page, which asks for
+  confirmation on GET and disables a notification only on POST. The manage
+  view renders the package form template
+  `django_letter_notifications/notification_form.html` with
+  `NotificationForm`, and `NotificationPreference` stores each override. A
+  decorated `TemplateEmail` gains the notification context values, the
+  `List-Unsubscribe` headers, and the `send()` filter. It accepts at most one
+  distinct recipient across `to`, `cc`, and `bcc`. With none it renders without
+  links and sends nothing, and more than one raises
+  `EmailImproperlyConfigured` on render and on send. Its `urls.py` calls
+  `autodiscover_modules("emails")` itself, so a production process fills the
+  registry without the debug URLs.
 - Rendering is a pipeline rather than one step: `render()` → `render_html()`
   (template render under `translation.override()`, then `premailer.transform()`
   with a resolved `base_url`) → `render_body()` → `parser.html_to_text()`. The
@@ -44,7 +58,7 @@ reproduce a version-specific failure with
   through `__subclasses__()` and counts a class only once it defines both
   `template_name` and `subject`. `django_letter/urls.py` mounts the debug pages
   only while `DEBUG` or `DJANGO_LETTER_TEST=true`, and calls
-  `autodiscover_modules("emails")` there — the same way Django loads `admin.py`,
+  `autodiscover_modules("emails")` there, the same way Django loads `admin.py`,
   which is why each app is expected to keep its classes in an `emails.py` next
   to its `views.py`.
 - The preview views serve one class per slug. `?plain=1` and `?raw=1` return the
@@ -68,13 +82,14 @@ reproduce a version-specific failure with
 
 ## Conventions
 
-- Modules start with `from __future__ import annotations`, and arguments and
-  returns are annotated. Exceptions derive from Django's so callers can catch
-  the framework type, and each carries the offending object (`self.user`,
-  `self.email_class`).
+- Arguments and returns are annotated. Python 3.14 evaluates annotations
+  lazily, so modules do not need `from __future__ import annotations`, and
+  pyupgrade removes that import under `--py314-plus`. Exceptions derive from
+  Django's so callers can catch the framework type, and each carries the
+  offending object (`self.user`, `self.email_class`).
 - Tests are plain pytest functions named `test_*` with `-> None`, no test
   classes. They use the pytest-django `client` fixture and `reverse()` rather
-  than hard-coded URLs. Fixtures live in the module that needs them;
+  than hard-coded URLs. Fixtures live in the module that needs them.
   `tests/conftest.py` only imports `django_letter.urls`, which is what triggers
   autodiscovery of the test app's `emails` module.
 - The example emails live in `tests/testapp/emails.py` with their templates in
@@ -82,6 +97,6 @@ reproduce a version-specific failure with
   `test_message.py::test_get_email_classes` and its expected mapping.
 - Tests import private helpers directly (`from django_letter.message import _attached_static_part`), so renaming an underscore-prefixed function means
   updating the suite.
-- Email templates extend `django_letter/base.html` and fill `content`; the other
+- Email templates extend `django_letter/base.html` and fill `content`. The other
   blocks are `container`, `logo`, `footer`, `footer_content` and
   `extra_header`.

@@ -23,6 +23,7 @@ from tests.testapp.emails import (
     LogoEmail,
     RemoteImagesEmail,
     RetinaLogoEmail,
+    WeeklyDigestEmail,
     WelcomeEmail,
 )
 
@@ -110,6 +111,7 @@ def test_get_email_classes() -> None:
         "logoemail": LogoEmail,
         "retinalogoemail": RetinaLogoEmail,
         "remoteimagesemail": RemoteImagesEmail,
+        "weeklydigestemail": WeeklyDigestEmail,
     }
 
 

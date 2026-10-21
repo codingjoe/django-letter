@@ -1,0 +1,16 @@
+{% extends "django_letter/base.html" %}
+{% load i18n %}
+
+{% block content %}
+  <h1>{% translate "This week" %}</h1>
+  <p>{% translate "Here is what happened on your account." %}</p>
+{% endblock content %}
+
+{% block footer_content %}
+  {% if unsubscribe_url %}
+    <p>
+      {% translate "You get this email because you subscribed to the weekly digest." %}
+      <a href="{{ unsubscribe_url }}">{% translate "Unsubscribe" %}</a>
+    </p>
+  {% endif %}
+{% endblock footer_content %}

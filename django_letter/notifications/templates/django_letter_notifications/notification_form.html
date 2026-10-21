@@ -1,0 +1,30 @@
+{% extends "django_letter_notifications/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Email preferences" %}{% endblock %}
+{% block styles %}
+  <style>
+    form > div {
+      margin-bottom: 1rem;
+    }
+
+    .helptext {
+      color: GrayText;
+      font-size: 0.9rem;
+    }
+  </style>
+{% endblock %}
+{% block content %}
+  <h1>{% translate "Email preferences" %}</h1>
+  {% if saved %}
+    <p role="status">{% translate "Your preferences were saved." %}</p>
+  {% endif %}
+  {% if form.fields %}
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_div }}
+      <button type="submit">{% translate "Save preferences" %}</button>
+    </form>
+  {% else %}
+    <p>{% translate "There are no notifications to configure." %}</p>
+  {% endif %}
+{% endblock %}

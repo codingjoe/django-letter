@@ -1,0 +1,30 @@
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>{% block title %}{% endblock %}</title>
+    <style>
+      body {
+        max-width: 32rem;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+        line-height: 1.5;
+        font-family: system-ui, sans-serif;
+      }
+
+      button {
+        padding: 0.5rem 1rem;
+        font: inherit;
+        cursor: pointer;
+      }
+    </style>
+    {% block styles %}{% endblock %}
+  </head>
+  <body>
+    {% block content %}{% endblock %}
+  </body>
+</html>

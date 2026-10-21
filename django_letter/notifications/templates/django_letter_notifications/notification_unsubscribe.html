@@ -1,0 +1,16 @@
+{% extends "django_letter_notifications/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Unsubscribe" %}{% endblock %}
+{% block content %}
+  <h1>{% translate "Unsubscribe" %}</h1>
+  <p>
+    {% blocktranslate with name=name %}Stop receiving “{{ name }}”.{% endblocktranslate %}
+  </p>
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit">{% translate "Unsubscribe" %}</button>
+  </form>
+  <p>
+    <a href="{{ manage_url }}">{% translate "Manage all notifications" %}</a>
+  </p>
+{% endblock %}

@@ -164,6 +164,177 @@ OrderShippedEmail(order, to=["customer@example.com"], language="de").send()
 OrderShippedEmail.to_user(user, order=order, language="de").send()
 ```
 
+### Let recipients manage preferences
+
+Notifications are optional. Add the subapp only when you send recurring mail
+and recipients may want to control what arrives:
+
+```python
+# settings.py
+INSTALLED_APPS = [
+    "django_letter",
+    "django_letter.notifications",
+    # ...
+]
+```
+
+The core app renders and sends mail without this entry. The subapp adds
+`NotificationPreference` and its migration. Run `migrate` after you add it:
+
+```console
+uv run manage.py migrate
+```
+
+Define each kind of email once and decorate the class that sends it:
+
+```python
+# myapp/emails.py
+from django.utils.translation import gettext_lazy as _
+
+from django_letter import TemplateEmail
+from django_letter.notifications import Notification, subscribe
+
+WEEKLY_DIGEST = Notification(
+    "weekly-digest",
+    _("Weekly digest"),
+    _("A weekly summary of your account."),
+    default=True,
+)
+PRODUCT_NEWS = Notification(
+    "product-news",
+    _("Product news"),
+    _("Occasional updates about new features."),
+    default=False,
+)
+
+
+@subscribe(WEEKLY_DIGEST)
+class WeeklyDigestEmail(TemplateEmail):
+    template_name = "emails/weekly_digest.html"
+    subject = _("Your weekly digest")
+    preheader = _("A summary of your account this week.")
+
+    def __init__(self, account, **kwargs):
+        self.account = account
+        super().__init__(**kwargs)
+
+    def get_context_data(self):
+        return {"account": self.account, "items": self.account.recent_items()}
+```
+
+The slug of a `Notification` must be 100 characters or fewer and must equal
+its own `slugify()` output. That allows lower-case ASCII letters, digits,
+hyphens, and underscores. A slug registers once. A bad or duplicate slug
+raises `NotificationImproperlyConfigured`.
+
+Mount both views under a public path:
+
+```python
+# urls.py
+from django.urls import include, path
+
+urlpatterns = [
+    path("notifications/", include("django_letter.notifications.urls")),
+]
+```
+
+A decorated message adds up to three values to the template context. It may
+name zero or one distinct recipient across `to`, `cc`, and `bcc`. With one, it
+adds both links. With none, it renders without them. The values are:
+
+- `unsubscribe_url`: signed link to a confirmation page. The page disables this
+  notification for that recipient only after a POST, so a scanner that opens
+  the link changes nothing.
+- `manage_notifications_url`: signed link to the preferences form for that
+  recipient.
+- `notification`: the `Notification` object itself. It is not tied to an
+  address.
+
+Put the first one in the footer:
+
+```django
+{# myapp/templates/emails/weekly_digest.html #}
+{% extends "django_letter/base.html" %}
+{% load i18n %}
+
+{% block content %}
+  <h1>{% translate "This week" %}</h1>
+  <ul>
+    {% for item in items %}<li>{{ item }}</li>{% endfor %}
+  </ul>
+{% endblock content %}
+
+{% block footer_content %}
+  {% if unsubscribe_url %}
+    <p>
+      {% translate "You get this email because you subscribed to the weekly digest." %}
+      <a href="{{ unsubscribe_url }}">{% translate "Unsubscribe" %}</a>
+    </p>
+  {% endif %}
+{% endblock footer_content %}
+```
+
+The message carries the one-click headers as well. A mail client posts to the
+same confirmation link, and the POST disables the notification:
+
+```text
+List-Unsubscribe: <https://example.com/notifications/<token>/weekly-digest/unsubscribe/>
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+```
+
+`send()` returns `0` without delivering when the message names no recipient or
+when the recipient's preference is off. A decorated message may name zero or
+one distinct recipient across `to`, `cc`, and `bcc`. With more, both rendering
+and sending raise `EmailImproperlyConfigured`, because one token cannot stand
+for several addresses.
+
+The manage view renders the package form template
+`django_letter_notifications/notification_form.html`, with one checkbox per
+registered notification. Each box starts from its `default` and the stored
+overrides. To render and save the same preferences in your own view:
+
+```python
+from django.shortcuts import render
+
+from django_letter.notifications.forms import NotificationForm
+
+
+def notification_settings(request):
+    form = NotificationForm(
+        email=request.user.email,
+        data=request.POST or None,
+    )
+    if form.is_valid():
+        form.save()
+    return render(request, "notifications/settings.html", {"form": form})
+```
+
+Reuse that template in your own view, or copy it to change the layout. It
+expects `form`, and the optional `saved` flag shows the confirmation line.
+
+The form needs bound data, so pass `request.POST or None`. An unbound form
+never validates.
+
+A signed link carries the digest instead of the address. `hash_email()` from
+`django_letter.notifications` returns a 64-character hex SHA-256 digest of the
+trimmed, lower-cased address, keyed with `settings.SECRET_KEY`. Pass
+`email_hash=hash_email("ada@example.com")` in place of `email`. The link token
+comes from `sign_email_hash()`, and `unsign_email_hash()` returns the digest
+again. Both signing helpers are exported from `django_letter.notifications`.
+`unsign_email_hash()` raises `BadSignature` from `django.core.signing` when the
+token was altered or signed with another salt. Check or change a preference in
+code:
+
+```python
+if WEEKLY_DIGEST.is_enabled("ada@example.com"):
+    WeeklyDigestEmail.to_user(user, account=account, language="en").send()
+
+WEEKLY_DIGEST.set_enabled("ada@example.com", False)
+```
+
+The subapp must be installed for these calls. Without it, they raise
+`NotificationImproperlyConfigured` and name the missing entry.
+
 ### Test it
 
 Render the email in your tests without a mail backend:
