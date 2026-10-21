@@ -198,8 +198,6 @@ class TemplateEmail(EmailMultiAlternatives):
                 _, address = parseaddr(next(iter(self.to)))
             except StopIteration:
                 return None
-            if not address:
-                return None
             return urljoin(
                 self.get_base_url(),
                 reverse(
