@@ -1,7 +1,7 @@
 import logging
 import mimetypes
 import typing
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 from email import encoders
 from email.message import Message, MIMEPart
 from email.mime.base import MIMEBase
@@ -67,16 +67,6 @@ def _attached_static_part(path: Path, content_id: str) -> Message:
     part.add_header("Content-Disposition", "inline")
     part.add_header("Content-ID", f"<{content_id}>")
     return part
-
-
-def _addresses(*recipient_fields: str | Iterable[str]) -> list[str]:
-    addresses: list[str] = []
-    for field in recipient_fields:
-        entries = [field] if isinstance(field, str) else field
-        for _, address in getaddresses(entries):
-            if address:
-                addresses.append(address.lower())
-    return addresses
 
 
 class TemplateEmail(EmailMultiAlternatives):
@@ -214,12 +204,15 @@ class TemplateEmail(EmailMultiAlternatives):
         return f"{'https' if secure else 'http'}://{host.removeprefix('.')}"
 
     def _notification_address(self) -> str | None:
-        addresses = set(_addresses(self.to, self.cc, self.bcc))
-        if len(addresses) > 1:
+        addresses = (
+            address.lower() for _, address in getaddresses(self.recipients()) if address
+        )
+        first = next(addresses, None)
+        if first is not None and any(address != first for address in addresses):
             raise EmailImproperlyConfigured(
                 type(self), "cannot sign a link for multiple recipients"
             )
-        return next(iter(addresses), None)
+        return first
 
     def get_unsubscribe_url(self) -> str | None:
         """

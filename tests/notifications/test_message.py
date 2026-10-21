@@ -3,7 +3,6 @@ from django.core.signing import b64_encode
 from django.urls import NoReverseMatch, reverse
 
 from django_letter.exceptions import EmailImproperlyConfigured
-from django_letter.message import _addresses
 from django_letter.notifications import hash_email, signer
 from tests.testapp.emails import WeeklyDigestEmail, WelcomeEmail, weekly_digest
 
@@ -189,10 +188,3 @@ def test_send__rejects_more_than_one_recipient(mailoutbox, recipients: dict) -> 
     ):
         email.send()
     assert mailoutbox == []
-
-
-def test_addresses__reads_every_field_and_entry() -> None:
-    assert _addresses("Ada <Ada@Example.COM>", ["grace@example.com", ""]) == [
-        "ada@example.com",
-        "grace@example.com",
-    ]
