@@ -210,8 +210,8 @@ mail.mailers.default.send_messages(
 )
 ```
 
-`HashedEmailField` adds the `email` lookup, so you can look up notification
-preferences per email address:
+`NotificationPreference` uses `HashedEmailField`, so you can look up
+notification preferences per email address:
 
 ```python
 from django_letter.notifications.models import NotificationPreference
