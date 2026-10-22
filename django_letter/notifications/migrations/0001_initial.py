@@ -1,5 +1,12 @@
 from django.db import migrations, models
 
+import django_letter.notifications.models
+
+
+def create_pgcrypto(apps, schema_editor) -> None:
+    if schema_editor.connection.vendor == "postgresql":
+        schema_editor.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
+
 
 class Migration(migrations.Migration):
     initial = True
@@ -7,6 +14,7 @@ class Migration(migrations.Migration):
     dependencies = []
 
     operations = [
+        migrations.RunPython(create_pgcrypto, migrations.RunPython.noop),
         migrations.CreateModel(
             name="NotificationPreference",
             fields=[
@@ -19,7 +27,12 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("email_hash", models.BinaryField(editable=False, max_length=32)),
+                (
+                    "email_hash",
+                    django_letter.notifications.models.HashedEmailField(
+                        editable=False, max_length=32
+                    ),
+                ),
                 ("slug", models.SlugField(max_length=100)),
                 ("enabled", models.BooleanField()),
                 ("updated_at", models.DateTimeField(auto_now=True)),
