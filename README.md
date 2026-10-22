@@ -186,9 +186,38 @@ The optional `django_letter.notifications` subapp adds unsubscribe buttons for
 email clients. It also gives recipients fine-grained control over each
 notification.
 
-The subapp stores preferences but does not filter delivery. Check
-`NotificationPreference.objects.is_enabled(notification, address)` from
-`django_letter.notifications.models` before you send.
+The subapp stores preferences but does not filter delivery. Filter the user
+queryset before you send. The unsubscribe link uses the first `to` address, so
+send one message per recipient.
+
+```python
+from django.contrib.auth import get_user_model
+from django.core import mail
+
+from django_letter.notifications.models import EmailHash, NotificationPreference
+
+from .emails import WeeklyDigestEmail, weekly_digest
+
+User = get_user_model()
+hashes = NotificationPreference.objects.email_hashes(weekly_digest)
+recipients = (
+    User.objects.filter(is_active=True)
+    .alias(email_hash=EmailHash(User.get_email_field_name()))
+    .exclude(email_hash__in=hashes)
+)
+mail.mailers.default.send_messages(
+    WeeklyDigestEmail.to_user(user, language="de") for user in recipients
+)
+```
+
+`NotificationPreference` uses `HashedEmailField`, so you can look up
+notification preferences per email address:
+
+```python
+from django_letter.notifications.models import NotificationPreference
+
+NotificationPreference.objects.filter(email_hash__email="ada@example.com")
+```
 
 Define each kind of email once and decorate the class that sends it:
 

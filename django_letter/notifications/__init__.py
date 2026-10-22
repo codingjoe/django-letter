@@ -15,6 +15,8 @@ __all__ = [
     "signer",
 ]
 
+EMAIL_HASH_SALT = "django_letter.notifications"
+
 signer = Signer(salt="django_letter.notifications")
 
 
@@ -27,9 +29,7 @@ class NotificationImproperlyConfigured(ImproperlyConfigured):
 
 
 def hash_email(email: str) -> bytes:
-    return hashlib.sha256(
-        f"django_letter.notifications{email.strip().lower()}".encode()
-    ).digest()
+    return hashlib.sha256(f"{EMAIL_HASH_SALT}{email.strip().lower()}".encode()).digest()
 
 
 @dataclass
