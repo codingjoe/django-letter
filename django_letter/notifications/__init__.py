@@ -1,4 +1,3 @@
-import hashlib
 from dataclasses import dataclass
 
 from django.apps import apps as installed_apps
@@ -10,12 +9,9 @@ __all__ = [
     "Notification",
     "NotificationImproperlyConfigured",
     "NotificationRegistry",
-    "hash_email",
     "registry",
     "signer",
 ]
-
-EMAIL_HASH_SALT = "django_letter.notifications"
 
 signer = Signer(salt="django_letter.notifications")
 
@@ -26,10 +22,6 @@ class NotificationImproperlyConfigured(ImproperlyConfigured):
     def __init__(self, notification: Notification, message: str) -> None:
         self.notification = notification
         super().__init__(message)
-
-
-def hash_email(email: str) -> bytes:
-    return hashlib.sha256(f"{EMAIL_HASH_SALT}{email.strip().lower()}".encode()).digest()
 
 
 @dataclass

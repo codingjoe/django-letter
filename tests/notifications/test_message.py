@@ -2,7 +2,8 @@ import pytest
 from django.core.signing import b64_encode
 from django.urls import NoReverseMatch, reverse
 
-from django_letter.notifications import hash_email, signer
+from django_letter.fields import HashedEmailField
+from django_letter.notifications import signer
 from tests.testapp.emails import WeeklyDigestEmail, WelcomeEmail, weekly_digest
 
 pytestmark = pytest.mark.django_db
@@ -32,7 +33,7 @@ def test_get_unsubscribe_url__decorated_without_recipient_returns_none() -> None
 def test_get_unsubscribe_url__is_absolute_and_signed() -> None:
     email = WeeklyDigestEmail(language="en")
     url = email.get_unsubscribe_url()
-    token = signer.sign(b64_encode(hash_email(EMAIL)).decode())
+    token = signer.sign(b64_encode(HashedEmailField.hash_email(EMAIL)).decode())
     assert url == (
         "http://testserver"
         + reverse(

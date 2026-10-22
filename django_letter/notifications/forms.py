@@ -1,6 +1,6 @@
 from django import forms
 
-from . import hash_email, registry
+from . import registry
 from .models import NotificationPreference
 
 
@@ -9,7 +9,9 @@ class NotificationForm(forms.Form):
 
     def __init__(self, email: str, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.email_hash = hash_email(email)
+        self.email_hash = NotificationPreference._meta.get_field("email_hash").hash(
+            email
+        )
         self.notifications = tuple(registry.values())
         overrides = (
             {}
