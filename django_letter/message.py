@@ -205,7 +205,7 @@ class TemplateEmail(EmailMultiAlternatives):
                     "django_letter_notifications:unsubscribe",
                     kwargs={
                         "token": signer.sign(
-                            b64_encode(HashedEmailField.hash_email(address)).decode()
+                            b64_encode(HashedEmailField().hash_email(address)).decode()
                         ),
                         "slug": notification.slug,
                     },

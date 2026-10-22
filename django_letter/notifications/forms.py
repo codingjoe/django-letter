@@ -9,9 +9,9 @@ class NotificationForm(forms.Form):
 
     def __init__(self, email: str, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.email_hash = NotificationPreference._meta.get_field("email_hash").hash(
-            email
-        )
+        self.email_hash = NotificationPreference._meta.get_field(
+            "email_hash"
+        ).hash_email(email)
         self.notifications = tuple(registry.values())
         overrides = (
             {}

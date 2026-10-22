@@ -33,7 +33,7 @@ def test_get_unsubscribe_url__decorated_without_recipient_returns_none() -> None
 def test_get_unsubscribe_url__is_absolute_and_signed() -> None:
     email = WeeklyDigestEmail(language="en")
     url = email.get_unsubscribe_url()
-    token = signer.sign(b64_encode(HashedEmailField.hash_email(EMAIL)).decode())
+    token = signer.sign(b64_encode(HashedEmailField().hash_email(EMAIL)).decode())
     assert url == (
         "http://testserver"
         + reverse(

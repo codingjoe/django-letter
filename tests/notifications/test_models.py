@@ -12,7 +12,7 @@ pytestmark = pytest.mark.django_db
 EMAIL = "ada@example.com"
 PREFERENCE = {
     "slug": weekly_digest.slug,
-    "email_hash": HashedEmailField.hash_email(EMAIL),
+    "email_hash": HashedEmailField().hash_email(EMAIL),
 }
 
 
@@ -20,7 +20,7 @@ def test_notification_preference__str() -> None:
     preference = NotificationPreference(**PREFERENCE, enabled=False)
     assert (
         str(preference)
-        == f"weekly-digest for {HashedEmailField.hash_email(EMAIL).hex()}"
+        == f"weekly-digest for {HashedEmailField().hash_email(EMAIL).hex()}"
     )
 
 
@@ -36,7 +36,7 @@ def test_is_enabled__defaults_to_on() -> None:
 
 def test_is_enabled__reads_the_override() -> None:
     NotificationPreference.objects.set_enabled_hash(
-        weekly_digest, HashedEmailField.hash_email(EMAIL), False
+        weekly_digest, HashedEmailField().hash_email(EMAIL), False
     )
     assert NotificationPreference.objects.is_enabled(weekly_digest, EMAIL) is False
 
@@ -45,7 +45,7 @@ def test_is_enabled__honours_a_disabled_default() -> None:
     notification = Notification("opt-in", "Opt-in", default=False)
     assert NotificationPreference.objects.is_enabled(notification, EMAIL) is False
     NotificationPreference.objects.create(
-        email_hash=HashedEmailField.hash_email(EMAIL),
+        email_hash=HashedEmailField().hash_email(EMAIL),
         slug=notification.slug,
         enabled=True,
     )
@@ -53,7 +53,7 @@ def test_is_enabled__honours_a_disabled_default() -> None:
 
 
 def test_set_enabled_hash__stores_an_override_and_removes_the_default() -> None:
-    digest = HashedEmailField.hash_email(EMAIL)
+    digest = HashedEmailField().hash_email(EMAIL)
     NotificationPreference.objects.set_enabled_hash(weekly_digest, digest, False)
     preference = NotificationPreference.objects.get(**PREFERENCE)
     assert preference.enabled is False
@@ -83,19 +83,19 @@ def test_email_lookup__misses_another_address() -> None:
 def test_email_hashes__returns_disabled_overrides() -> None:
     NotificationPreference.objects.create(**PREFERENCE, enabled=False)
     assert list(NotificationPreference.objects.email_hashes(weekly_digest)) == [
-        HashedEmailField.hash_email(EMAIL)
+        HashedEmailField().hash_email(EMAIL)
     ]
 
 
 def test_email_hashes__returns_enabled_overrides() -> None:
     notification = Notification("opt-in", "Opt-in", default=False)
     NotificationPreference.objects.create(
-        email_hash=HashedEmailField.hash_email(EMAIL),
+        email_hash=HashedEmailField().hash_email(EMAIL),
         slug=notification.slug,
         enabled=True,
     )
     assert list(NotificationPreference.objects.email_hashes(notification)) == [
-        HashedEmailField.hash_email(EMAIL)
+        HashedEmailField().hash_email(EMAIL)
     ]
 
 
@@ -111,7 +111,7 @@ def test_email_hash__matches_hash_email() -> None:
         .values_list("hashed", flat=True)
         .get()
     )
-    assert digest == HashedEmailField.hash_email(EMAIL)
+    assert digest == HashedEmailField().hash_email(EMAIL)
 
 
 def test_email_hash__normalises_the_address() -> None:
@@ -121,7 +121,7 @@ def test_email_hash__normalises_the_address() -> None:
         .values_list("hashed", flat=True)
         .get()
     )
-    assert digest == HashedEmailField.hash_email(EMAIL)
+    assert digest == HashedEmailField().hash_email(EMAIL)
 
 
 def test_email_hash__filters_opt_out_recipients() -> None:
@@ -143,7 +143,7 @@ def test_email_hash__filters_opt_in_recipients() -> None:
     User.objects.create_user("ada", email=EMAIL)
     User.objects.create_user("grace", email="grace@example.com")
     NotificationPreference.objects.create(
-        email_hash=HashedEmailField.hash_email("grace@example.com"),
+        email_hash=HashedEmailField().hash_email("grace@example.com"),
         slug=notification.slug,
         enabled=True,
     )

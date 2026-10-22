@@ -12,7 +12,7 @@ class EmailLookup(Exact):
     lookup_name = "email"
 
     def get_prep_lookup(self) -> bytes:
-        return self.lhs.field.hash(self.rhs)
+        return self.lhs.field.hash_email(self.rhs)
 
     def get_rhs_op(self, connection, rhs: str) -> str:
         return connection.operators["exact"] % rhs
@@ -34,15 +34,9 @@ class HashedEmailField(models.BinaryField):
             kwargs["salt"] = self.salt
         return name, path, args, kwargs
 
-    @classmethod
-    def hash_email(cls, email: str, salt: str | None = None) -> bytes:
-        if salt is None:
-            salt = f"{cls.__module__}.{cls.__name__}"
-        return hashlib.sha256(f"{salt}:{email.strip().lower()}".encode()).digest()
-
-    def hash(self, email: str) -> bytes:
+    def hash_email(self, email: str) -> bytes:
         """Return the hash this field stores for an address."""
-        return self.hash_email(email, self.salt)
+        return hashlib.sha256(f"{self.salt}:{email.strip().lower()}".encode()).digest()
 
 
 HashedEmailField.register_lookup(EmailLookup)

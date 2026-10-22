@@ -15,7 +15,7 @@ pytestmark = pytest.mark.django_db
 EMAIL = "ada@example.com"
 PREFERENCE = {
     "slug": weekly_digest.slug,
-    "email_hash": HashedEmailField.hash_email(EMAIL),
+    "email_hash": HashedEmailField().hash_email(EMAIL),
 }
 
 
@@ -33,7 +33,7 @@ def unsubscribe_path(slug: str = weekly_digest.slug, token: str | None = None) -
         "django_letter_notifications:unsubscribe",
         kwargs={
             "token": token
-            or signer.sign(b64_encode(HashedEmailField.hash_email(EMAIL)).decode()),
+            or signer.sign(b64_encode(HashedEmailField().hash_email(EMAIL)).decode()),
             "slug": slug,
         },
     )
@@ -49,7 +49,7 @@ def test_notification_settings_view__renders_the_user_form(client, user) -> None
     client.force_login(user)
     response = client.get(settings_path())
     assert response.status_code == 200
-    assert response.context["form"].email_hash == HashedEmailField.hash_email(EMAIL)
+    assert response.context["form"].email_hash == HashedEmailField().hash_email(EMAIL)
     assert "Weekly digest" in response.content.decode()
 
 
