@@ -196,7 +196,7 @@ from django.core import mail
 
 from django_letter.notifications.models import EmailHash, NotificationPreference
 
-from .emails import weekly_digest
+from .emails import WeeklyDigestEmail, weekly_digest
 
 User = get_user_model()
 hashes = NotificationPreference.objects.email_hashes(weekly_digest)
