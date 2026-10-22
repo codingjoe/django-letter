@@ -47,11 +47,13 @@ expected rather than something to fix.
   `List-Unsubscribe` headers. The link uses the first `to` address. With none
   it renders without links. Preferences are not filtered at send time.
   `NotificationPreference.objects.email_hashes()` returns the hashes that
-  differ from the notification default. `EmailHash` builds the binary hash
-  for subquery comparisons. `is_enabled()` checks one address. `email_hash` is
-  a `HashedEmailField` with an `email` lookup that hashes the address. Its
-  `ready()` calls `autodiscover_modules("emails")`, so a production process
-  fills the registry without the debug URLs.
+  differ from the notification default. Senders exclude those hashes for
+  default-on notifications and include them for default-off notifications.
+  `EmailHash` builds the binary hash for subquery comparisons. `is_enabled()`
+  checks one address. `email_hash` is a `HashedEmailField` with an `email`
+  lookup that hashes the address. Its `ready()` calls
+  `autodiscover_modules("emails")`, so a production process fills the registry
+  without the debug URLs.
 - Rendering is a pipeline rather than one step: `render()` → `render_html()`
   (template render under `translation.override()`, then `premailer.transform()`
   with a resolved `base_url`) → `render_body()` → `parser.html_to_text()`. The

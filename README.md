@@ -190,6 +190,10 @@ The subapp stores preferences but does not filter delivery. Filter the user
 queryset before you send. The unsubscribe link uses the first `to` address, so
 send one message per recipient.
 
+`NotificationPreference.objects.email_hashes(notification)` returns the
+stored overrides that differ from the notification default. For a
+`default=True` notification those are the opt-outs, so exclude them:
+
 ```python
 from django.contrib.auth import get_user_model
 from django.core import mail
@@ -200,14 +204,28 @@ from django_letter.notifications.models import NotificationPreference
 from .emails import WeeklyDigestEmail, weekly_digest
 
 User = get_user_model()
-hashes = NotificationPreference.objects.email_hashes(weekly_digest)
+opt_outs = NotificationPreference.objects.email_hashes(weekly_digest)
 recipients = (
     User.objects.filter(is_active=True)
     .alias(email_hash=EmailHash(User.get_email_field_name()))
-    .exclude(email_hash__in=hashes)
+    .exclude(email_hash__in=opt_outs)
 )
 mail.mailers.default.send_messages(
     WeeklyDigestEmail.to_user(user, language="de") for user in recipients
+)
+```
+
+For a `default=False` notification those are the opt-ins, so include only
+them. `product_news` below uses `default=False`:
+
+```python
+from .emails import product_news
+
+opt_ins = NotificationPreference.objects.email_hashes(product_news)
+recipients = (
+    User.objects.filter(is_active=True)
+    .alias(email_hash=EmailHash(User.get_email_field_name()))
+    .filter(email_hash__in=opt_ins)
 )
 ```
 
