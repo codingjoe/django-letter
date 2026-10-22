@@ -1,84 +1,8 @@
 from django.db import models
-from django.db.models import CharField, F, Value
-from django.db.models.functions import Concat, Lower, Trim
-from django.db.models.lookups import Exact
 
-from . import EMAIL_HASH_SALT, Notification, hash_email
+from django_letter.fields import HashedEmailField
 
-
-class EmailLookup(Exact):
-    """Compare a hashed email field with an address hash."""
-
-    lookup_name = "email"
-
-    def get_prep_lookup(self) -> bytes:
-        return hash_email(self.rhs)
-
-    def get_rhs_op(self, connection, rhs: str) -> str:
-        return connection.operators["exact"] % rhs
-
-
-class HashedEmailField(models.BinaryField):
-    """Provide the `email` lookup for address hashing."""
-
-
-HashedEmailField.register_lookup(EmailLookup)
-
-
-class EmailHash(models.Func):
-    """Return the binary hash of an email field with the package prefix."""
-
-    output_field = models.BinaryField()
-
-    def __init__(self, email_field: str, **extra: object) -> None:
-        super().__init__(
-            Concat(
-                Value(EMAIL_HASH_SALT),
-                Lower(Trim(F(email_field))),
-                output_field=CharField(),
-            ),
-            **extra,
-        )
-
-    def as_sqlite(
-        self, compiler, connection, **extra_context: object
-    ) -> tuple[str, list[object]]:
-        return super().as_sql(
-            compiler,
-            connection,
-            template="UNHEX(SHA256(%(expressions)s))",
-            **extra_context,
-        )
-
-    def as_postgresql(
-        self, compiler, connection, **extra_context: object
-    ) -> tuple[str, list[object]]:
-        return super().as_sql(
-            compiler,
-            connection,
-            template="DIGEST(%(expressions)s, 'sha256')",
-            **extra_context,
-        )
-
-    def as_mysql(
-        self, compiler, connection, **extra_context: object
-    ) -> tuple[str, list[object]]:
-        return super().as_sql(
-            compiler,
-            connection,
-            template="UNHEX(SHA2(%(expressions)s, 256))",
-            **extra_context,
-        )
-
-    def as_oracle(
-        self, compiler, connection, **extra_context: object
-    ) -> tuple[str, list[object]]:
-        return super().as_sql(
-            compiler,
-            connection,
-            template="STANDARD_HASH(%(expressions)s, 'SHA256')",
-            **extra_context,
-        )
+from . import Notification
 
 
 class NotificationPreferenceQuerySet(models.QuerySet):

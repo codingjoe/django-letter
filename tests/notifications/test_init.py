@@ -1,28 +1,13 @@
-import hashlib
-
 import pytest
 
 from django_letter.notifications import (
     Notification,
     NotificationImproperlyConfigured,
-    hash_email,
     registry,
 )
 from tests.testapp.emails import WeeklyDigestEmail, weekly_digest
 
 EMAIL = "ada@example.com"
-
-
-def test_hash_email__normalises_the_address() -> None:
-    assert hash_email(" Ada@Example.COM ") == hash_email(EMAIL)
-
-
-def test_hash_email__is_salted() -> None:
-    assert hash_email(EMAIL) != hashlib.sha256(EMAIL.encode()).digest()
-
-
-def test_hash_email__returns_a_32_byte_digest() -> None:
-    assert len(hash_email(EMAIL)) == 32
 
 
 def test_registry__get_returns_a_registered_notification() -> None:

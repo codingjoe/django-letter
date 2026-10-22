@@ -1,6 +1,6 @@
 import pytest
 
-from django_letter.notifications import hash_email
+from django_letter.fields import HashedEmailField
 from django_letter.notifications.forms import NotificationForm
 from django_letter.notifications.models import NotificationPreference
 from tests.testapp.emails import weekly_digest
@@ -8,12 +8,15 @@ from tests.testapp.emails import weekly_digest
 pytestmark = pytest.mark.django_db
 
 EMAIL = "ada@example.com"
-PREFERENCE = {"slug": weekly_digest.slug, "email_hash": hash_email(EMAIL)}
+PREFERENCE = {
+    "slug": weekly_digest.slug,
+    "email_hash": HashedEmailField().hash_email(EMAIL),
+}
 
 
 def test_notification_form__hashes_an_address() -> None:
     form = NotificationForm(email=" Ada@Example.COM ")
-    assert form.email_hash == hash_email(EMAIL)
+    assert form.email_hash == HashedEmailField().hash_email(EMAIL)
     assert set(form.fields) == {weekly_digest.slug}
     assert form.fields[weekly_digest.slug].initial is True
 

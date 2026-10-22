@@ -27,7 +27,8 @@ from .exceptions import (
     InactiveUserError,
     MissingEmailError,
 )
-from .notifications import Notification, hash_email, signer
+from .fields import HashedEmailField
+from .notifications import Notification, signer
 from .parser import html_to_text
 
 if typing.TYPE_CHECKING:
@@ -203,7 +204,9 @@ class TemplateEmail(EmailMultiAlternatives):
                 reverse(
                     "django_letter_notifications:unsubscribe",
                     kwargs={
-                        "token": signer.sign(b64_encode(hash_email(address)).decode()),
+                        "token": signer.sign(
+                            b64_encode(HashedEmailField().hash_email(address)).decode()
+                        ),
                         "slug": notification.slug,
                     },
                 ),

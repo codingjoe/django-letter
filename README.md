@@ -194,7 +194,8 @@ send one message per recipient.
 from django.contrib.auth import get_user_model
 from django.core import mail
 
-from django_letter.notifications.models import EmailHash, NotificationPreference
+from django_letter.fields import EmailHash
+from django_letter.notifications.models import NotificationPreference
 
 from .emails import WeeklyDigestEmail, weekly_digest
 
