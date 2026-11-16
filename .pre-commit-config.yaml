@@ -42,7 +42,7 @@ repos:
           - mdformat-web
           - mdformat-frontmatter
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.17.4
+    rev: v0.17.5
     hooks:
       - id: ruff-check
         args: [--fix, --exit-non-zero-on-fix]
@@ -56,7 +56,7 @@ repos:
     hooks:
       - id: yamlfmt
   - repo: https://github.com/codingjoe/esupgrade
-    rev: 2026.1.2
+    rev: 2026.1.3
     hooks:
       - id: esupgrade
         exclude: ^django_letter/static/django_letter/[\w.-]+\.min\.js$
@@ -66,7 +66,7 @@ repos:
       - id: oxlint
         exclude: ^django_letter/static/django_letter/[\w.-]+\.min\.js$
   - repo: https://github.com/oxc-project/mirrors-oxfmt
-    rev: v0.78.0
+    rev: v0.79.0
     hooks:
       - id: oxfmt
         exclude: ^django_letter/static/django_letter/[\w.-]+\.min\.js$
